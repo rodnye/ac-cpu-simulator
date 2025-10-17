@@ -1,6 +1,8 @@
 import EventEmitter from "eventemitter3";
 import { hexTo4BitBinary } from "../utils/convert";
 
+export class CacheFail extends Error {}
+
 class memoryRegister {
   tag: string;
   line: string;
@@ -13,7 +15,7 @@ class memoryRegister {
   }
 }
 
-export abstract class CacheManager extends EventEmitter {
+export class CacheManager extends EventEmitter {
   data!: memoryRegister[];
   blocks!: Record<string, string>;
 
@@ -33,6 +35,6 @@ export abstract class CacheManager extends EventEmitter {
     }
 
     this.emit("cache-fail", string);
-    throw new Error("cache-fail");
+    throw new CacheFail("cache-fail");
   }
 }
