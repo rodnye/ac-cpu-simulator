@@ -1,4 +1,4 @@
-import type { CacheRegister } from "../services/cache.service";
+import type { CacheRegister } from "../services/cache-manager";
 
 interface CacheCardProps {
   data: CacheRegister[];

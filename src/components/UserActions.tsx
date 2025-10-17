@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { CPUManager } from "../services/cpu.service";
+import type { CPUManager } from "../services/cpu-manager";
 import Button from "./Button";
 import TextField from "./TextField";
 

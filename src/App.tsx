@@ -12,7 +12,7 @@ import { ComputerElement } from "./components/ComputerElement.tsx";
 import "@xyflow/react/dist/style.css";
 import { UserActions } from "./components/UserActions.tsx";
 import { CacheCard } from "./components/CacheView.tsx";
-import { CPUManager } from "./services/cpu.service.ts";
+import { CPUManager } from "./services/cpu-manager.ts";
 
 const initialNodes = [
   {
