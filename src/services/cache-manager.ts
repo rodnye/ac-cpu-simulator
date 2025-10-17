@@ -1,7 +1,9 @@
 import EventEmitter from "eventemitter3";
 import { hexTo4BitBinary } from "../utils/convert";
 
-class memoryRegister {
+export class CacheFail extends Error {}
+
+class MemoryRegister {
   tag: string;
   line: string;
   wordIndex: string;
@@ -13,9 +15,9 @@ class memoryRegister {
   }
 }
 
-export abstract class CacheManager extends EventEmitter {
-  data!: memoryRegister[];
-  blocks!: Record<string, string>;
+export class CacheManager extends EventEmitter {
+  data: memoryRegister[] = [];
+  blocks: Record<string, string> = {};
 
   public getWord(string: string) {
     const binaryString: string = hexTo4BitBinary(string);
@@ -33,6 +35,6 @@ export abstract class CacheManager extends EventEmitter {
     }
 
     this.emit("cache-fail", string);
-    throw new Error("cache-fail");
+    throw new CacheFail("cache-fail");
   }
 }

@@ -1,18 +1,13 @@
 import { hexTo4BitBinary } from "../utils/convert";
-import {
-  CacheFail,
-  DirectCacheManager,
-  type CacheManager,
-  type CacheRegister,
-} from "./cache-manager";
+import { CacheFail, CacheManager } from "./cache-manager";
 import { MemoryManager } from "./memory-manager";
 
-export class CPUManager  {
+export class CPUManager {
   cacheManager: CacheManager;
   memoryManager: MemoryManager;
 
   constructor() {
-    this.cacheManager = new DirectCacheManager();
+    this.cacheManager = new CacheManager();
     this.memoryManager = new MemoryManager();
   }
 
@@ -21,13 +16,13 @@ export class CPUManager  {
     for (let letter of hexInput) {
       string += hexTo4BitBinary(letter);
     }
-    
+
     const query: CacheRegister = {
       tag: string.substring(0, 9),
       index: parseInt(string.substring(9, 23), 2),
       word: string.substring(23, 25),
     };
-    
+
     try {
       this.cacheManager.receiveCacheRegister(query);
     } catch (e) {
