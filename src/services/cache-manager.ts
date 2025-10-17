@@ -3,7 +3,7 @@ import { hexTo4BitBinary } from "../utils/convert";
 
 export class CacheFail extends Error {}
 
-class memoryRegister {
+class MemoryRegister {
   tag: string;
   line: string;
   wordIndex: string;
@@ -16,8 +16,8 @@ class memoryRegister {
 }
 
 export class CacheManager extends EventEmitter {
-  data!: memoryRegister[];
-  blocks!: Record<string, string>;
+  data: MemoryRegister[] = [];
+  blocks: Record<string, string> = {};
 
   public getWord(string: string) {
     const binaryString: string = hexTo4BitBinary(string);
