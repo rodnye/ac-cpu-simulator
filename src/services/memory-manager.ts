@@ -3,7 +3,7 @@ import { arregloStrings } from "./directions";
 import { CacheManager } from "./cache-manager";
 
 export class MemoryManager {
-  data!: Record<string, string>;
+  data: Record<string, string> = {};
   tags!: string[];
   abc: string = "0123456789ABCDEF";
 
@@ -20,7 +20,7 @@ export class MemoryManager {
   private randomString(num: number): string {
     let str = "";
     for (let i = 0; i < num; i++) {
-      str += (Math.random() * 100) % 16;
+      str += this.abc.charAt((Math.random() * 100) % 16);
     }
     return str;
   }
