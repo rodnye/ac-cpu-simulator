@@ -1,0 +1,17 @@
+export const arregloStrings: string[] = [
+  "ABC0000",
+  "DEF0001",
+  "GHI0002",
+  "JKL0003",
+  "MNO0004",
+  "PQR0005",
+  "STU0006",
+  "VWX0007",
+  "YZA0008",
+  "BCD0009",
+  "EFG0010",
+  "HIJ0011",
+  "KLM0012",
+  "NOP0013",
+  "QRS0014",
+];

@@ -1,25 +1,35 @@
+import { hexTo4BitBinary } from "../utils/convert";
+import { arregloStrings } from "./directions";
+import { CacheManager } from "./cache-manager";
+
 export class MemoryManager {
-  data: Record<string, string> = {};
+  data!: Record<string, string>;
+  tags!: string[];
+  abc: string = "0123456789ABCDEF";
 
   constructor() {
     this.initializeMemory();
   }
 
   private initializeMemory(): void {
-    for (let i = 0; i < 30; i++) {
-      const binaryKey = i.toString(2).padStart(8, "0");
-      const randomValue = Math.floor(Math.random() * 4)
-        .toString(2)
-        .padStart(2, "0");
-
-      this.data[binaryKey] = randomValue;
+    for (let i = 0; i < 15; i++) {
+      this.data[arregloStrings[i]] = this.randomString(8);
     }
   }
 
-  getWord(tag: string) {
-    return {
-      word: this.data[tag],
-      blockId: Math.floor(Object.keys(this.data).indexOf(tag) / 4),
-    };
+  private randomString(num: number): string {
+    let str = "";
+    for (let i = 0; i < num; i++) {
+      str += (Math.random() * 100) % 16;
+    }
+    return str;
+  }
+
+  public getWord(string: string) {
+    const binary: string = hexTo4BitBinary(string);
+    const tag = binary.substring(0, 9);
+    const wordIndex = parseInt(binary.substring(23, 25), 2);
+    CacheManager.setBlock(binary);
+    return this.data[tag].substring(wordIndex * 2, wordIndex * 2 + 3);
   }
 }
