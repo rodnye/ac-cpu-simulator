@@ -16,6 +16,7 @@ export class MemoryManager extends EventEmitter {
     for (let i = 0; i < 15; i++) {
       this.data[arregloStrings[i]] = this.randomString(8);
     }
+    this.emit("data", this.data);
   }
 
   private randomString(num: number): string {
