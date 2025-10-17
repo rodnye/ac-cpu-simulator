@@ -2,7 +2,6 @@ import { hexTo4BitBinary } from "../utils/convert";
 import { arregloStrings } from "./directions";
 import EventEmitter from "eventemitter3";
 
-
 export class MemoryManager extends EventEmitter {
   data: Record<string, string> = {};
   tags: string[] = [];
