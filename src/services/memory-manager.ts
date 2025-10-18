@@ -1,13 +1,37 @@
 import { hexTo4BitBinary } from "../utils/convert";
 import { arregloStrings } from "./directions";
-import { OperationManager, OperationNextError } from "./operation-manager";
+import {
+  OperationManager,
+  OperationNextError,
+  type Operation,
+} from "./operation-manager";
 
 const ABC = "0123456789ABCDEF";
 
-export class MemoryManager extends OperationManager<{data: MemoryManager["data"]}> {
+export interface MemoryRegister {
+  tag: string;
+  line: number;
+}
+
+type MemoryOperation = Operation & {
+  step: "get-word";
+  value: {
+    tag: string;
+    wordIndex: number;
+  };
+};
+
+export class MemoryManager extends OperationManager<{
+  data: MemoryManager["data"];
+  operation: MemoryOperation;
+}> {
   data: Record<string, string> = {};
   tags: string[] = [];
   protected operationData!: Record<string, unknown>;
+
+  /**
+   * [word, block]
+   */
   public output!: [string, string];
 
   constructor() {
@@ -28,30 +52,28 @@ export class MemoryManager extends OperationManager<{data: MemoryManager["data"]
     return str;
   }
 
-  public next () {
-    if (!this.hasNext()) new OperationNextError();
-    
-  }
+  public next() {
+    if (!this.hasNext()) throw new OperationNextError();
 
+    const current = this.queue.shift()!;
+
+    if (current.step === "get-word") {
+      const { tag, wordIndex } = current.value;
+      this.output = [
+        this.data[tag].substring(wordIndex * 2, wordIndex * 2 + 3),
+        this.data[tag],
+      ];
+    }
+  }
 
   public executeGetWord(hexString: string) {
     const binary: string = hexTo4BitBinary(hexString);
     const tag = hexString.substring(0, 3);
     const wordIndex = parseInt(binary.substring(23, 25), 2);
-    this.queue.push({step: 'get-word', info: 'Obteniendo palabra...', value: {tag, wordIndex}});
-  }
-
-  public getWord(string: string) {
-    const ret = [
-      this.data[tag].substring(wordIndex * 2, wordIndex * 2 + 3),
-      this.data[tag],
-    ];
-    this.emit("get-word", ret);
-    return ret;
+    this.queue.push({
+      step: "get-word",
+      info: "Obteniendo palabra...",
+      value: { tag, wordIndex },
+    });
   }
 }
-export interface MemoryRegister {
-  tag: string;
-  line: number;
-}
-

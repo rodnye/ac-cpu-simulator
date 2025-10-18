@@ -15,11 +15,12 @@ interface CacheOperation extends Operation {
     | "set-register";
 }
 
-export class CacheManager extends OperationManager {
+export class CacheManager extends OperationManager<{
+  operation: CacheOperation;
+}> {
   lines: MemoryRegister[] = [];
   blocks: Record<string, string> = {};
   output!: string;
-  public queue: CacheOperation[] = [];
   operationData!: {
     tag: string;
     line: number;
@@ -98,8 +99,10 @@ export class CacheManager extends OperationManager {
       step: "set-register",
       info: "",
       value: {
-        tag, line, block
-      }
+        tag,
+        line,
+        block,
+      },
     });
   }
   public executeGetCache(

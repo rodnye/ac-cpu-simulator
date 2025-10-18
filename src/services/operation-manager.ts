@@ -17,11 +17,13 @@ export class OperationNextError extends OperationError {
     super(msg);
   }
 }
-new Error();
+
 export abstract class OperationManager<
-  T extends EventEmitter.ValidEventTypes = { operation: Operation },
+  T extends
+    | ({ operation: Operation } & EventEmitter.ValidEventTypes)
+    | EventEmitter.ValidEventTypes = { operation: Operation },
 > extends EventEmitter<{ operation: Operation } & T> {
-  public queue: Operation[] = [];
+  public queue: ({ operation: Operation } & T)["operation"][] = [];
   private timer: TimerId | undefined;
 
   protected abstract operationData: Record<string, unknown>;

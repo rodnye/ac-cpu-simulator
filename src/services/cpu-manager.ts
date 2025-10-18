@@ -9,10 +9,10 @@ import {
 } from "./operation-manager";
 
 interface CpuOperation extends Operation {
-  step: 'get-cache' | 'get-memory' | 'word'
+  step: "get-cache" | "get-memory" | "set-cache" | "word";
 }
 
-export class CpuManager extends OperationManager {
+export class CpuManager extends OperationManager<{ operation: CpuOperation }> {
   cacheManager: CacheManager;
   memoryManager: MemoryManager;
   operationData!: {
@@ -21,13 +21,19 @@ export class CpuManager extends OperationManager {
     wordIndex: number;
     hexInput: string;
   };
-  output = null;
-  queue: CpuOperation[] = [];
+  output!: string;
+
+  constructor() {
+    super();
+    // grafo
+    this.cacheManager = new CacheManager();
+    this.memoryManager = new MemoryManager();
+  }
 
   public next() {
     if (!this.hasNext()) throw new OperationNextError();
-    
-    const {line, tag, hexInput} = this.operationData;
+
+    const { line, tag, hexInput } = this.operationData;
     const current = this.queue.shift()!;
     this.emit("operation", current);
 
@@ -58,57 +64,58 @@ export class CpuManager extends OperationManager {
         }
         break;
       case "get-memory":
-          this.memoryManager.next();
-          if (this.cacheManager.hasNext()) {
-            this.queue.push({
-              step: "get-memory",
-              info: "Esperando respuesta de la memoria",
-            });
-          } else {
-            const [word, block] = this.memoryManager.output;
-            this.cacheManager.executeSetRegister(tag, line, block);
-            /*
-            this.queue.push({
-              step: "word",
-              info: "Obteniendo palabra",
-              value: this.memoryManager.output,
-            });
-            */
-          }
-        
-        } catch (e) {
-          if (e instanceof OperationError) {
-            const [word, block] = this.memoryManager.getWord(hexInput);
-
-            this.cacheManager.setRegister(tag, line, block);
-          } else throw e;
+        this.memoryManager.next();
+        if (!this.cacheManager.hasNext()) {
+          const [word, block] = this.memoryManager.output;
+          this.output = word;
+          this.cacheManager.executeSetRegister(tag, line, block);
+          this.queue.push({
+            step: "set-cache",
+            info: "Esperando seteo de caché...",
+          });
+        } else {
+          this.queue.push({
+            step: "get-memory",
+            info: "Esperando respuesta de la memoria",
+          });
         }
+        break;
+      case "set-cache": {
+        this.cacheManager.next();
+        if (!this.cacheManager.hasNext()) {
+          this.queue.push({
+            step: "word",
+            info: "Obteniendo palabra...",
+          });
+        } else {
+          this.queue.push({
+            step: "set-cache",
+            info: "Esperando seteo de caché...",
+          });
+        }
+        break;
+      }
+      case "word":
+        // ya el output se setteo
         break;
     }
   }
 
-  constructor() {
-    super();
-    // grafo
-    this.cacheManager = new CacheManager();
-    this.memoryManager = new MemoryManager();
-  }
-
   executeGetDirectWord(hexInput: string) {
     const bits4 = hexTo4BitBinary(hexInput);
-    
+
     this.operationData = {
       tag: bits4.substring(0, 9),
       line: parseInt(bits4.substring(9, 23), 2),
       wordIndex: parseInt(bits4.substring(23, 25)),
       hexInput,
     };
-    
+
     this.cacheManager.executeGetCache(
-      this.operationData.tag, 
-      this.operationData.line, 
-      this.operationData.wordIndex, 
-      this.operationData.hexInput
+      this.operationData.tag,
+      this.operationData.line,
+      this.operationData.wordIndex,
+      this.operationData.hexInput,
     );
     this.queue.push({
       step: "get-cache",
