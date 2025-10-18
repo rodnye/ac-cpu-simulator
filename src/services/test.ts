@@ -1,7 +1,14 @@
-import { CPUManager } from "./cpu-manager";
+import { CpuManager } from "./cpu-manager";
 
-const cpu = new CPUManager();
+const cpu = new CpuManager();
 
-cpu.executeSearch("DDC0006");
+cpu.executeGetDirectWord("DDC0006");
 
-cpu.executeSearch("DDC0006");
+const x = setInterval(() => {
+  if (cpu.hasNext()) {
+    console.log(cpu.next());
+  }
+  else {
+    clearInterval(x);
+  }
+})

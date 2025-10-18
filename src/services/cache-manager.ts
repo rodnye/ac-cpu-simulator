@@ -1,145 +1,120 @@
-import EventEmitter from "eventemitter3";
+import type { MemoryRegister } from "./memory-manager";
+import {
+  OperationError,
+  OperationManager,
+  OperationNextError,
+  type Operation,
+} from "./operation-manager";
 
-export class CacheFail extends Error {}
-
-class MemoryRegister {
-  tag: string;
-  line: number;
-
-  constructor(tag: string, line: number) {
-    this.tag = tag;
-    this.line = line;
-  }
+interface CacheOperation extends Operation {
+  step:
+    | "check-line"
+    | "check-tag"
+    | "cache-success"
+    | "cache-fail"
+    | "set-register";
 }
 
-class Operation {
-  step: string;
-  description: string;
-  value: any;
-
-  constructor(step: string, description: string, value: any) {
-    this.step = step;
-    this.description = description;
-    this.value = value;
-  }
-}
-
-export class CacheManager extends EventEmitter<{
-  "cache-success": string;
-  "cache-fail": string;
-}> {
-  queue: Operation[] = [];
-  data: MemoryRegister[] = [];
+export class CacheManager extends OperationManager {
+  lines: MemoryRegister[] = [];
   blocks: Record<string, string> = {};
-  private globalData!: {
+  output!: string;
+  public queue: CacheOperation[] = [];
+  operationData!: {
     tag: string;
     line: number;
     wordIndex: number;
     hexString: string;
-    output: any;
   };
-  public output: any;
-  public setRegister(tag: string, line: number, block: string) {
-    this.blocks[tag] = block;
-    this.data[line] = new MemoryRegister(tag, line);
+
+  constructor() {
+    super();
   }
 
-  private throwError(hexString: string) {
-    this.emit("cache-fail", hexString);
-    throw new CacheFail("cache-fail");
-  }
+  public next() {
+    if (!this.hasNext()) throw new OperationNextError();
 
-  private verifyTag(bloque: MemoryRegister, tag: string, wordIndex: number) {
-    if (bloque.tag == tag) {
-      this.queue.push(
-        new Operation(
-          "send-word",
-          "hay un acierto de cache, enviando la palabra a la cpu...",
-          this.blocks[tag].substring(wordIndex * 2, wordIndex * 2 + 3),
-        ),
-      );
-    } else {
-      this.queue.push(
-        new Operation(
-          "cache-fail",
-          "hay un fallo de chache, dando curso a la peticion a memoria principal...",
-          null,
-        ),
-      );
-    }
-  }
+    const current = this.queue.shift()!;
+    const { line, tag, wordIndex } = this.operationData;
 
-  public next(): boolean {
-    if (!this.queue.length) return false;
-    const actual = this.queue.shift();
-    let line, tag, wordIndex;
-
-    console.log(actual?.step);
-    switch (actual!.step) {
+    this.emit("operation", current);
+    switch (current.step) {
+      /**
+       * Flujo de obtener dato de caché
+       */
       case "check-line":
-        line = this.globalData.line;
-        tag = this.globalData.tag;
-        wordIndex = this.globalData.wordIndex;
-
-        if (this.data[line]) {
-          this.queue.push(
-            new Operation(
-              "check-tag",
-              "verificando si la etiqueta del bloque en la linea coincide con la esperada",
-              null,
-            ),
-          );
+        if (this.lines[line]) {
+          this.queue.push({
+            step: "check-tag",
+            info: "Verificando si la etiqueta del bloque en la linea coincide con la esperada",
+          });
         } else {
-          this.queue.push(
-            new Operation(
-              "cache-fail",
-              "hay un fallo de chache, dando curso a la peticion a memoria principal...",
-              null,
-            ),
-          );
+          this.queue.push({
+            step: "cache-fail",
+            info: "Hay un fallo de cache, dando curso a la petición a memoria principal...",
+          });
         }
         break;
+
       case "check-tag":
-        line = this.globalData.line;
-        tag = this.globalData.tag;
-        wordIndex = this.globalData.wordIndex;
-        this.verifyTag(this.data[line], tag, wordIndex);
+        if (this.lines[line].tag == tag) {
+          this.queue.push({
+            step: "cache-success",
+            info: "hay un acierto de cache, enviando la palabra a la cpu...",
+            value: this.blocks[tag].substring(wordIndex * 2, wordIndex * 2 + 3),
+          });
+        } else {
+          this.queue.push({
+            step: "cache-fail",
+            info: "Hay un fallo de cache, dando curso a la petición a memoria principal...",
+          });
+        }
         break;
-      case "throw-error":
-        this.throwError(this.globalData.hexString);
-        break;
-      case "send-word":
-        this.output = this.globalData.output;
+      case "cache-success":
+        this.output = current.value as string;
         break;
       case "cache-fail":
-        this.throwError(this.globalData.hexString);
-        break;
-      default:
-        break;
-    }
+        throw new OperationError("cache-fail");
 
-    return false;
+      /**
+       * Flujo de settear dato en cache
+       */
+      case "set-register": {
+        const { line, tag, block } = current.value as {
+          block: string;
+          line: number;
+          tag: string;
+        };
+        this.blocks[tag] = block;
+        this.lines[line] = { tag, line };
+
+        break;
+      }
+    }
   }
 
-  public executeCache(
+  public executeSetRegister() {
+    this.queue.push({
+      step: "set-register",
+      info: "",
+    });
+  }
+  public executeGetCache(
     tag: string,
     line: number,
     wordIndex: number,
     hexString: string,
   ) {
-    this.globalData = {
+    this.operationData = {
       tag,
       line,
       wordIndex,
       hexString,
-      output: null,
     };
-    const op = new Operation(
-      "check-line",
-      `verificando si hay algun bloque en la linea${line}`,
-      null,
-    );
 
-    this.queue.push(op);
+    this.queue.push({
+      step: "check-line",
+      info: `verificando si hay algún bloque en la linea:${line}`,
+    });
   }
 }

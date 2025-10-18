@@ -1,21 +1,19 @@
 import { hexTo4BitBinary } from "../utils/convert";
 import { arregloStrings } from "./directions";
-import EventEmitter from "eventemitter3";
+import { OperationManager } from "./operation-manager";
 
-export class MemoryManager extends EventEmitter<{
-  data: MemoryManager["data"];
-  "get-word": string;
-}> {
+const ABC = "0123456789ABCDEF";
+
+export class MemoryManager extends OperationManager<{data: MemoryManager["data"]}> {
   data: Record<string, string> = {};
   tags: string[] = [];
-  abc: string = "0123456789ABCDEF";
+  protected operationData!: Record<string, unknown>;
+  public output!: string;
 
   constructor() {
     super();
-    this.initializeMemory();
-  }
 
-  private initializeMemory(): void {
+    // initialize memory
     for (let i = 0; i < 15; i++) {
       this.data[arregloStrings[i].substring(0, 3)] = this.randomString(8);
     }
@@ -25,15 +23,24 @@ export class MemoryManager extends EventEmitter<{
   private randomString(num: number): string {
     let str = "";
     for (let i = 0; i < num; i++) {
-      str += this.abc.charAt((Math.random() * 100) % 16);
+      str += ABC.charAt((Math.random() * 100) % 16);
     }
     return str;
   }
 
-  public getWord(string: string) {
-    const binary: string = hexTo4BitBinary(string);
-    const tag = string.substring(0, 3);
+  public next () {
+    if (!this.hasNext()) new 
+  }
+
+
+  public executeGetWord(hexString: string) {
+    const binary: string = hexTo4BitBinary(hexString);
+    const tag = hexString.substring(0, 3);
     const wordIndex = parseInt(binary.substring(23, 25), 2);
+    this.queue.push({step: 'get-word', info: 'Obteniendo palabra...', value: {tag, wordIndex}});
+  }
+
+  public getWord(string: string) {
     const ret = [
       this.data[tag].substring(wordIndex * 2, wordIndex * 2 + 3),
       this.data[tag],
@@ -42,3 +49,8 @@ export class MemoryManager extends EventEmitter<{
     return ret;
   }
 }
+export interface MemoryRegister {
+  tag: string;
+  line: number;
+}
+
