@@ -27,7 +27,7 @@ export class CpuManager extends OperationManager {
   public next() {
     if (!this.hasNext()) throw new OperationNextError();
     
-    const {hexInput} = this.operationData;
+    const {line, tag, hexInput} = this.operationData;
     const current = this.queue.shift()!;
     this.emit("operation", current);
 
@@ -65,23 +65,17 @@ export class CpuManager extends OperationManager {
               info: "Esperando respuesta de la memoria",
             });
           } else {
+            const [word, block] = this.memoryManager.output;
+            this.cacheManager.executeSetRegister(tag, line, block);
+            /*
             this.queue.push({
               step: "word",
               info: "Obteniendo palabra",
               value: this.memoryManager.output,
             });
+            */
           }
-        } catch (e) {
-          if (e instanceof OperationError) {
-            this.memoryManager.executeGetWord(hexInput);
-            this.queue.push({
-              step: "get-memory",
-              info: "Buscando en la memoria",
-            });
-          }
-        }
-        try {
-          this.memoryManager.next();
+        
         } catch (e) {
           if (e instanceof OperationError) {
             const [word, block] = this.memoryManager.getWord(hexInput);

@@ -1,6 +1,6 @@
 import { hexTo4BitBinary } from "../utils/convert";
 import { arregloStrings } from "./directions";
-import { OperationManager } from "./operation-manager";
+import { OperationManager, OperationNextError } from "./operation-manager";
 
 const ABC = "0123456789ABCDEF";
 
@@ -8,7 +8,7 @@ export class MemoryManager extends OperationManager<{data: MemoryManager["data"]
   data: Record<string, string> = {};
   tags: string[] = [];
   protected operationData!: Record<string, unknown>;
-  public output!: string;
+  public output!: [string, string];
 
   constructor() {
     super();
@@ -29,7 +29,8 @@ export class MemoryManager extends OperationManager<{data: MemoryManager["data"]
   }
 
   public next () {
-    if (!this.hasNext()) new 
+    if (!this.hasNext()) new OperationNextError();
+    
   }
 
 

@@ -93,10 +93,13 @@ export class CacheManager extends OperationManager {
     }
   }
 
-  public executeSetRegister() {
+  public executeSetRegister(tag: string, line: number, block: string) {
     this.queue.push({
       step: "set-register",
       info: "",
+      value: {
+        tag, line, block
+      }
     });
   }
   public executeGetCache(
