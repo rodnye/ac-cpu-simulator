@@ -85,6 +85,11 @@ export class CacheAsociativa extends Cache {
         `Bloque cargado desde memoria en línea ${lineaDestino}`,
         bloque,
       );
+      this.addStep(
+        "send-word",
+        "Dato enviado a la CPU desde la memoria",
+        this.memory.getAssociativeWord(tag, palabra),
+      );
     }
   }
 }
