@@ -44,6 +44,7 @@ export class CacheManager extends OperationManager<{
        * Flujo de obtener dato de caché
        */
       case "check-line":
+        console.log("check-line");
         if (this.lines[line]) {
           this.queue.push({
             step: "check-tag",
@@ -58,11 +59,12 @@ export class CacheManager extends OperationManager<{
         break;
 
       case "check-tag":
+        console.log("check-tag");
         if (this.lines[line].tag == tag) {
           this.queue.push({
             step: "cache-success",
             info: "hay un acierto de cache, enviando la palabra a la cpu...",
-            value: this.blocks[tag].substring(wordIndex * 2, wordIndex * 2 + 3),
+            value: this.blocks[tag].substring(wordIndex * 2, wordIndex * 2 + 2),
           });
         } else {
           this.queue.push({
@@ -72,15 +74,18 @@ export class CacheManager extends OperationManager<{
         }
         break;
       case "cache-success":
+        console.log("cache-success");
         this.output = current.value as string;
         break;
       case "cache-fail":
+        console.log("cache-fail");
         throw new OperationError("cache-fail");
 
       /**
        * Flujo de settear dato en cache
        */
       case "set-register": {
+        console.log("set-register");
         const { line, tag, block } = current.value as {
           block: string;
           line: number;
@@ -98,11 +103,7 @@ export class CacheManager extends OperationManager<{
     this.queue.push({
       step: "set-register",
       info: "",
-      value: {
-        tag,
-        line,
-        block,
-      },
+      value: { tag, line, block },
     });
   }
   public executeGetCache(

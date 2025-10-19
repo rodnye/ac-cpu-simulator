@@ -1,4 +1,4 @@
-export const arregloStrings: string[] = [
+export const directCacheDirections: string[] = [
   "AAC0000",
   "ABF0001",
   "ACA0002",

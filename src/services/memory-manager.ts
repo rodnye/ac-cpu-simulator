@@ -1,5 +1,5 @@
 import { hexTo4BitBinary } from "../utils/convert";
-import { arregloStrings } from "./directions";
+import { directCacheDirections } from "./directions";
 import {
   OperationManager,
   OperationNextError,
@@ -39,7 +39,8 @@ export class MemoryManager extends OperationManager<{
 
     // initialize memory
     for (let i = 0; i < 15; i++) {
-      this.data[arregloStrings[i].substring(0, 3)] = this.randomString(8);
+      this.data[directCacheDirections[i].substring(0, 3)] =
+        this.randomString(8);
     }
     this.emit("data", this.data);
   }
@@ -60,7 +61,7 @@ export class MemoryManager extends OperationManager<{
     if (current.step === "get-word") {
       const { tag, wordIndex } = current.value;
       this.output = [
-        this.data[tag].substring(wordIndex * 2, wordIndex * 2 + 3),
+        this.data[tag].substring(wordIndex * 2, wordIndex * 2 + 2),
         this.data[tag],
       ];
     }
@@ -69,7 +70,8 @@ export class MemoryManager extends OperationManager<{
   public executeGetWord(hexString: string) {
     const binary: string = hexTo4BitBinary(hexString);
     const tag = hexString.substring(0, 3);
-    const wordIndex = parseInt(binary.substring(23, 25), 2);
+    const wordIndex = parseInt(binary.substring(23, 25));
+
     this.queue.push({
       step: "get-word",
       info: "Obteniendo palabra...",

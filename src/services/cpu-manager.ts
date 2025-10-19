@@ -103,20 +103,19 @@ export class CpuManager extends OperationManager<{ operation: CpuOperation }> {
 
   executeGetDirectWord(hexInput: string) {
     const bits4 = hexTo4BitBinary(hexInput);
+    const tag = bits4.substring(0, 9);
+    const line = parseInt(bits4.substring(9, 23), 2);
+    const wordIndex = parseInt(bits4.substring(23, 25));
 
     this.operationData = {
-      tag: bits4.substring(0, 9),
-      line: parseInt(bits4.substring(9, 23), 2),
-      wordIndex: parseInt(bits4.substring(23, 25)),
+      tag: tag,
+      line: line,
+      wordIndex: wordIndex,
       hexInput,
     };
 
-    this.cacheManager.executeGetCache(
-      this.operationData.tag,
-      this.operationData.line,
-      this.operationData.wordIndex,
-      this.operationData.hexInput,
-    );
+    this.cacheManager.executeGetCache(tag, line, wordIndex, hexInput);
+
     this.queue.push({
       step: "get-cache",
       info: "Buscando en el cache",
