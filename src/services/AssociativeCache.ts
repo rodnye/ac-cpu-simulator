@@ -3,12 +3,20 @@ import { Cache } from "./Cache";
 import { Memory } from "./Memory";
 
 export class CacheAsociativa extends Cache {
+  private memory: Memory;
+
+  constructor(memory: Memory, numLineas: number = 20) {
+    super(numLineas);
+    this.memory = memory;
+  }
+
   public executeCache(direccionHex: string): void {
     this.steps = [];
 
+    // Convertir dirección hexadecimal a binario de 24 bits
     const bin = hexTo4BitBinary(direccionHex);
     const tag = bin.slice(0, 22); // bits 0 a 21
-    const palabra = bin.slice(22); // bits 22 y 23
+    const palabra = bin.slice(22, 24); // bits 22 y 23
 
     this.addStep(
       "decode-address",
@@ -30,6 +38,7 @@ export class CacheAsociativa extends Cache {
           this.addStep(
             "cache-success",
             `Etiqueta encontrada en línea ${i}, dato enviado a la CPU`,
+            this.memory.getAssociativeWord(tag, palabra),
           );
           break;
         }
@@ -41,7 +50,7 @@ export class CacheAsociativa extends Cache {
     if (index === -1) {
       this.addStep("cache-miss", "Etiqueta no encontrada, fallo de caché");
 
-      const bloque = Memory.getBlock(tag);
+      const bloque = this.memory.getAssociativeBlock(tag);
       const lineaLibre = this.lineas.findIndex((entry) => entry === null);
       const lineaDestino =
         lineaLibre !== -1
@@ -55,7 +64,11 @@ export class CacheAsociativa extends Cache {
         `Bloque cargado desde memoria en línea ${lineaDestino}`,
         bloque,
       );
-      this.addStep("cache-success", "Dato enviado a la CPU");
+      this.addStep(
+        "cache-success",
+        "Dato enviado a la CPU",
+        this.memory.getAssociativeWord(tag, palabra),
+      );
     }
   }
 }

@@ -1,16 +1,20 @@
+// test-associative.ts
 import { CPU } from "./CPU";
 
 const cpu = new CPU();
-const tag = cpu.memory.directCalls[1];
 
-cpu.startDirectCache(tag);
+const testTag = cpu.memory.associativeCalls[0];
 
-while (cpu.cacheDirect.hasNext()) {
-  cpu.cacheDirect.next();
+console.log("=== Probando Caché Asociativa ===");
+cpu.startAssociativeCache(testTag);
+
+while (cpu.cacheAssociative.hasNext()) {
+  cpu.cacheAssociative.next();
 }
 
-cpu.startDirectCache(tag);
+console.log("\n=== Segunda ejecución (debería ser cache hit) ===");
+cpu.startAssociativeCache(testTag);
 
-while (cpu.cacheDirect.hasNext()) {
-  cpu.cacheDirect.next();
+while (cpu.cacheAssociative.hasNext()) {
+  cpu.cacheAssociative.next();
 }

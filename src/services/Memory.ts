@@ -7,6 +7,7 @@ export const blocksData = generarCadenasUnicas(50);
 export class Memory extends EventEmitter {
   directCacheArray: Record<string, string>;
   directCalls: string[];
+  associativeCalls: string[];
   associativeCacheStrings: Record<string, string>;
 
   constructor() {
@@ -14,6 +15,7 @@ export class Memory extends EventEmitter {
     this.directCacheArray = {};
     this.associativeCacheStrings = {};
     this.directCalls = [];
+    this.associativeCalls = [];
     this.initMemory();
   }
 
@@ -32,10 +34,13 @@ export class Memory extends EventEmitter {
       this.directCacheArray[directTag] = hexString;
       this.associativeCacheStrings[associativeTag] = hexString;
 
-      //Crear direcciones de entrada validas
+      //Crear direcciones de entrada validas para cache directa
       tag2Hex = binary4BitToHex(directTag);
       cadena = binary4BitToHex(binaryString.slice(8, 24));
       this.directCalls.push(directTag);
+
+      //Crear direcciones de entrada validas para cache asociativa
+      this.associativeCalls.push(hexString);
     }
   }
 
@@ -47,7 +52,13 @@ export class Memory extends EventEmitter {
     let index = parseInt(wordIndex, 2) * 2;
     return this.directCacheArray[tag].substring(index, index + 2);
   }
+
   public getAssociativeBlock(tag: string) {
     return this.associativeCacheStrings[tag];
+  }
+
+  public getAssociativeWord(tag: string, wordIndex: string) {
+    let index = parseInt(wordIndex, 2) * 2;
+    return this.associativeCacheStrings[tag].substring(index, index + 2);
   }
 }
