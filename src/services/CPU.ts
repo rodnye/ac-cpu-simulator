@@ -12,14 +12,4 @@ export class CPU {
   public start(direccionHex: string) {
     this.cache.executeCache(direccionHex);
   }
-
-  public next() {
-    if (this.cache.hasNext()) {
-      const operacion = this.cache.next();
-      if (operacion) {
-        console.log(operacion.info);
-        this.operaciones.push(operacion);
-      }
-    }
-  }
 }
