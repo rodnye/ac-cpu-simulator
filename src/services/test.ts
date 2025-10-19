@@ -1,15 +1,16 @@
 import { CPU } from "./CPU";
 
 const cpu = new CPU();
+const tag = cpu.memory.directCalls[1];
 
-cpu.start("ABF123");
+cpu.startDirectCache(tag);
 
-while (cpu.cache.hasNext()) {
-  cpu.cache.next();
+while (cpu.cacheDirect.hasNext()) {
+  cpu.cacheDirect.next();
 }
 
-cpu.start("ABF123");
+cpu.startDirectCache(tag);
 
-while (cpu.cache.hasNext()) {
-  cpu.cache.next();
+while (cpu.cacheDirect.hasNext()) {
+  cpu.cacheDirect.next();
 }

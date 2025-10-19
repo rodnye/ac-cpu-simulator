@@ -15,7 +15,7 @@ export abstract class Cache extends EventEmitter {
   protected lineas: (CacheEntry | null)[];
   protected steps: Step[] = [];
 
-  constructor(numLineas: number = 16384) {
+  constructor(numLineas: number = 20) {
     super();
     this.lineas = new Array(numLineas).fill(null);
   }
