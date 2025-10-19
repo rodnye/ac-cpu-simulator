@@ -1,5 +1,5 @@
 import { Cache } from "./Cache";
-import { directCacheStrings } from "./Memory";
+import { Memory } from "./Memory";
 
 export class CacheDirecta extends Cache {
   public executeCache(direccionHex: string): void {
@@ -20,7 +20,7 @@ export class CacheDirecta extends Cache {
 
     if (!entrada) {
       this.addStep("cache-miss", "Fallo de caché: no hay bloque en la línea");
-      const bloque = directCacheStrings[tag];
+      const bloque = Memory.getBlock(tag);
       this.lineas[linea] = { tag, bloque };
       this.addStep(
         "load-memory",
@@ -30,7 +30,7 @@ export class CacheDirecta extends Cache {
       this.addStep("cache-success", "Dato enviado a la CPU");
     } else if (entrada.tag !== tag) {
       this.addStep("verify-tag", "Etiqueta no coincide, fallo de caché");
-      const bloque = directCacheStrings[tag];
+      const bloque = Memory.getBlock(tag);
       this.lineas[linea] = { tag, bloque };
       this.addStep(
         "load-memory",

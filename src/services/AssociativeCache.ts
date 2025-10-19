@@ -1,5 +1,5 @@
 import { Cache } from "./Cache";
-import { directCacheStrings } from "./Memory";
+import { Memory } from "./Memory";
 
 export class CacheAsociativa extends Cache {
   public executeCache(direccionHex: string): void {
@@ -24,7 +24,7 @@ export class CacheAsociativa extends Cache {
       );
     } else {
       this.addStep("cache-miss", "Etiqueta no encontrada, fallo de caché");
-      const bloque = directCacheStrings[tag];
+      const bloque = Memory.getBlock(tag);
       const lineaLibre = this.lineas.findIndex((entry) => entry === null);
       const lineaDestino =
         lineaLibre !== -1
