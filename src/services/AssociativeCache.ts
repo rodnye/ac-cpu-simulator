@@ -14,6 +14,7 @@ export class CacheAsociativa extends Cache {
     this.steps = [];
 
     // Convertir dirección hexadecimal a binario de 24 bits
+    // Convertir dirección hexadecimal a binario de 24 bits
     const bin = hexTo4BitBinary(direccionHex);
     const tag = bin.slice(0, 22); // bits 0 a 21
     const palabra = bin.slice(22, 24); // bits 22 y 23
@@ -84,6 +85,11 @@ export class CacheAsociativa extends Cache {
         "load-memory",
         `Bloque cargado desde memoria en línea ${lineaDestino}`,
         bloque,
+      );
+      this.addStep(
+        "send-word",
+        "Dato enviado a la CPU desde la memoria",
+        this.memory.getAssociativeWord(tag, palabra),
       );
     }
   }
