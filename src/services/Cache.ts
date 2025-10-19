@@ -7,7 +7,7 @@ export interface CacheEntry {
 
 export interface Step {
   step: string;
-  description: string;
+  info: string;
   value?: any;
 }
 
@@ -36,7 +36,7 @@ export abstract class Cache extends EventEmitter {
     this.emit("step", actualStep);
   }
 
-  protected addStep(step: string, description: string, value?: any) {
-    this.steps.push({ step, description, value });
+  protected addStep(step: string, info: string, value?: any) {
+    this.steps.push({ step, info, value });
   }
 }

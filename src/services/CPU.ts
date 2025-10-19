@@ -12,7 +12,7 @@ export class CPU {
   constructor() {
     this.memory = new Memory();
     this.cacheDirect = new CacheDirecta(this.memory);
-    this.cacheAssociative = new CacheAsociativa();
+    this.cacheAssociative = new CacheAsociativa(this.memory);
   }
 
   public startDirectCache(direccionHex: string) {

@@ -3,12 +3,20 @@ import { Cache } from "./Cache";
 import { Memory } from "./Memory";
 
 export class CacheAsociativa extends Cache {
+  private memory: Memory;
+
+  constructor(memory: Memory, numLineas: number = 20) {
+    super(numLineas);
+    this.memory = memory;
+  }
+
   public executeCache(direccionHex: string): void {
     this.steps = [];
 
+    // Convertir dirección hexadecimal a binario de 24 bits
     const bin = hexTo4BitBinary(direccionHex);
     const tag = bin.slice(0, 22); // bits 0 a 21
-    const palabra = bin.slice(22); // bits 22 y 23
+    const palabra = bin.slice(22, 24); // bits 22 y 23
 
     this.addStep(
       "decode-address",
@@ -17,37 +25,59 @@ export class CacheAsociativa extends Cache {
 
     this.addStep(
       "search-tag",
-      `Iniciando búsqueda iterativa de la etiqueta ${tag} en la caché`,
+      `Buscando etiqueta ${tag} en todas las líneas de caché`,
     );
 
-    let index = -1;
+    let encontrado = false;
+    let lineaEncontrada = -1;
+
+    // Buscar en todas las líneas
     for (let i = 0; i < this.lineas.length; i++) {
       const entry = this.lineas[i];
-      if (entry) {
-        this.addStep("check-line", `Línea ${i}: etiqueta=${entry.tag}`);
-        if (entry.tag === tag) {
-          index = i;
-          this.addStep(
-            "cache-success",
-            `Etiqueta encontrada en línea ${i}, dato enviado a la CPU`,
-          );
-          break;
-        }
+      if (entry && entry.tag === tag) {
+        encontrado = true;
+        lineaEncontrada = i;
+        this.addStep("check-line", `Línea ${i}: etiqueta coincide - ACIERTO`);
+        break;
+      } else if (entry) {
+        this.addStep(
+          "check-line",
+          `Línea ${i}: etiqueta=${entry.tag} - NO coincide`,
+        );
       } else {
         this.addStep("check-line", `Línea ${i}: vacía`);
       }
     }
 
-    if (index === -1) {
-      this.addStep("cache-miss", "Etiqueta no encontrada, fallo de caché");
+    if (encontrado) {
+      this.addStep(
+        "cache-hit",
+        `Acierto de caché - Etiqueta encontrada en línea ${lineaEncontrada}`,
+      );
+      this.addStep(
+        "cache-success",
+        "Dato enviado a la CPU",
+        this.memory.getAssociativeWord(tag, palabra),
+      );
+    } else {
+      this.addStep("cache-miss", "Etiqueta no encontrada - FALLO de caché");
 
-      const bloque = Memory.getBlock(tag);
+      // Buscar línea libre o seleccionar aleatoria
       const lineaLibre = this.lineas.findIndex((entry) => entry === null);
       const lineaDestino =
         lineaLibre !== -1
           ? lineaLibre
           : Math.floor(Math.random() * this.lineas.length);
 
+      this.addStep(
+        "select-line",
+        lineaLibre !== -1
+          ? `Línea ${lineaDestino} está libre - se usará para cargar el bloque`
+          : `Todas las líneas ocupadas - reemplazo aleatorio en línea ${lineaDestino}`,
+      );
+
+      // Cargar bloque desde memoria
+      const bloque = this.memory.getAssociativeBlock(tag);
       this.lineas[lineaDestino] = { tag, bloque };
 
       this.addStep(
@@ -55,7 +85,6 @@ export class CacheAsociativa extends Cache {
         `Bloque cargado desde memoria en línea ${lineaDestino}`,
         bloque,
       );
-      this.addStep("cache-success", "Dato enviado a la CPU");
     }
   }
 }
