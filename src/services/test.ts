@@ -1,14 +1,18 @@
-import { CpuManager } from "./cpu-manager";
+import { CPU } from "./CPU";
 
-const cpu = new CpuManager();
+const cpu = new CPU();
 
-cpu.executeGetDirectWord("DDC0006");
+cpu.start("AAC000");
 
-const x = setInterval(() => {
-  if (cpu.hasNext()) {
-    console.log(cpu.next());
-  }
-  else {
-    clearInterval(x);
-  }
-})
+while (cpu.cache.hasNext()) {
+  cpu.next();
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+}
+console.log("-----------------------");
+
+cpu.start("AAC000");
+
+while (cpu.cache.hasNext()) {
+  cpu.next();
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+}
