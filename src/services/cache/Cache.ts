@@ -5,6 +5,8 @@ export interface CacheEntry {
   block: string;
 }
 
+export type CacheType = "direct" | "set-associative" | "associative";
+
 export abstract class Cache<S extends Step> extends StepManager<S> {
   lines: (CacheEntry | null)[];
   input: string | null = null;

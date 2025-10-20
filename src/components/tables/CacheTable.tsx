@@ -1,10 +1,10 @@
 // CacheTable.tsx
-import type { CacheEntry } from "../../services/cache/Cache";
+import type { CacheEntry, CacheType } from "../../services/cache/Cache";
 import type { DirectCache } from "../../services/cache/DirectCache";
 
 interface CacheTableProps {
   lines: DirectCache["lines"];
-  cacheType?: "direct" | "set-associative";
+  cacheType?: CacheType;
 }
 
 export const CacheTable = ({

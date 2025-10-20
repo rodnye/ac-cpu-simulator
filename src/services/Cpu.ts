@@ -1,4 +1,4 @@
-// Cpu.ts - Actualizado con nuevas funcionalidades
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { DirectCache, type DirectCacheStep } from "./cache/DirectCache";
 import {
   SetAssociativeCache,
@@ -11,13 +11,14 @@ import { AssociativeCache } from "./cache/AssociativeCache";
 
 export type CpuStep = Step &
   (
+    // FIXME: eliminar estos any
     | {
         id: `cache:${string}`;
-        value: DirectCacheStep[] | any;
+        value: DirectCacheStep[] | any[];
       }
     | {
         id: `set-cache:${string}`;
-        value: SetAssociativeCacheStep[] | any;
+        value: SetAssociativeCacheStep[] | any[];
       }
     | {
         id: `memory:${string}`;
@@ -104,7 +105,7 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: "Palabra obtenida exitosamente",
+      info: `Palabra obtenida exitosamente: ${this.output}`,
       value: this.output,
     });
 

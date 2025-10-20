@@ -68,7 +68,8 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     }
 
     if (found) {
-      this.output = currentSet[foundLine]!.block;
+      const index = parseInt(word, 2) * 2;
+      this.output = currentSet[foundLine]!.block.substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
         info: `Acierto de caché - Etiqueta encontrada en conjunto ${setNumber}, línea ${foundLine}`,

@@ -1,5 +1,5 @@
 import Button from "../atoms/Button";
-import { StopIcon, ResetIcon, NextIcon } from "../atoms/Icon";
+import { NextIcon } from "../atoms/Icon";
 
 interface ControlPanelProps {
   onNext: () => void;
@@ -13,8 +13,8 @@ interface ControlPanelProps {
 
 export function ControlPanel({
   onNext,
-  onStop,
-  onReset,
+  //onStop,
+  //onReset,
   isRunning,
   hasNext,
   currentStep = 0,
@@ -43,6 +43,7 @@ export function ControlPanel({
       )}
 
       <div className="flex flex-row items-center justify-between gap-4">
+        {/* FIXME: se rompe el flujo
         <Button
           variant={isRunning ? "danger" : "secondary"}
           disabled={!hasNext && !isRunning}
@@ -63,7 +64,7 @@ export function ControlPanel({
               Reanudar
             </>
           )}
-        </Button>
+        </Button>*/}
 
         <Button
           onClick={onNext}

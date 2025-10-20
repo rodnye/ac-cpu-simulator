@@ -17,7 +17,8 @@ import { MemoryTable } from "./components/tables/MemoryTable.tsx";
 import type { MemoryStep } from "./services/Memory.ts";
 import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCache.ts";
 import type { DirectCacheStep } from "./services/cache/DirectCache.ts";
-import type { CacheEntry } from "./services/cache/Cache.ts";
+import type { CacheEntry, CacheType } from "./services/cache/Cache.ts";
+import type { AssociativeCacheStep } from "./services/cache/AssociativeCache.ts";
 
 const initialNodes: IComputerNodeData[] = [
   {
@@ -81,9 +82,9 @@ export default function App() {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [totalSteps, setTotalSteps] = useState(0);
-  const [cacheType, setCacheType] = useState<"direct" | "set-associative">(
-    "direct",
-  );
+  const [cacheType, setCacheType] = useState<
+    "direct" | "associative" | "set-associative"
+  >("direct");
   const [{ cpu }, setCpuWrapper] = useState({ cpu: cpuManager });
 
   const renderCpu = () => setCpuWrapper({ cpu });
@@ -115,9 +116,11 @@ export default function App() {
   const getCacheLines = () => {
     if (cacheType === "direct") {
       return cpu.directCache.lines;
+    } else if (cacheType === "associative") {
+      return cpu.associativeCache.lines;
     } else {
       // For set-associative cache, flatten the sets
-      const setCache = cpu.associativeCache;
+      const setCache = cpu.setAssociativeCache;
       const allLines: (CacheEntry | null)[] = [];
       Object.values(setCache.sets || {}).forEach((set) => {
         if (Array.isArray(set)) {
@@ -129,7 +132,8 @@ export default function App() {
   };
 
   useEffect(() => {
-    const { memory, directCache, associativeCache } = cpuManager;
+    const { memory, directCache, associativeCache, setAssociativeCache } =
+      cpuManager;
     const [cpuNode, cacheNode, memoryNode] = nodes;
     const [cpuCacheEdge, cpuMemoryEdge] = edges;
 
@@ -196,7 +200,32 @@ export default function App() {
       renderCpu();
     };
 
-    const handleAssociativeCacheStep = (step: SetAssociativeCacheStep) => {
+    const handleAssociativeCacheStep = (step: AssociativeCacheStep) => {
+      switch (step.id) {
+        case "cache-hit":
+          cacheNode.data.status = "success";
+          cpuCacheEdge.label = step.value;
+          renderEdges();
+          break;
+        case "load-memory":
+          cacheNode.data.status = "success";
+          cpuCacheEdge.label = step.value.line + ":" + step.value.entry.tag;
+          renderEdges();
+          break;
+        case "cache-miss":
+          cacheNode.data.status = "error";
+          break;
+        default:
+          cacheNode.data.status = "active";
+          break;
+      }
+      cacheNode.data.statusText = step.info;
+
+      renderNodes();
+      renderCpu();
+    };
+
+    const handleSetAssociativeCacheStep = (step: SetAssociativeCacheStep) => {
       switch (step.id) {
         case "cache-hit":
           cacheNode.data.status = "success";
@@ -242,7 +271,9 @@ export default function App() {
     // cache
     directCache.on("step", handleDirectCacheStep);
     directCache.on("execute", renderCpu);
-    associativeCache.on("step", handleAssociativeCacheStep);
+    setAssociativeCache.on("step", handleSetAssociativeCacheStep);
+    setAssociativeCache.on("execute", renderCpu);
+    //associativeCache.on("step", handleAssociativeCacheStep);
     associativeCache.on("execute", renderCpu);
 
     // Cleanup function
@@ -260,6 +291,8 @@ export default function App() {
 
       associativeCache.off("step", handleAssociativeCacheStep);
       associativeCache.off("execute");
+      setAssociativeCache.off("step", handleSetAssociativeCacheStep);
+      setAssociativeCache.off("execute");
     };
   });
 
@@ -285,11 +318,12 @@ export default function App() {
             <select
               value={cacheType}
               onChange={(e) =>
-                setCacheType(e.target.value as "direct" | "set-associative")
+                setCacheType(e.target.value as CacheType)
               }
               className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="direct">Caché Directa</option>
+              <option value="associative">Caché Asociativa</option>
               <option value="set-associative">
                 Caché Asociativa por Conjuntos
               </option>

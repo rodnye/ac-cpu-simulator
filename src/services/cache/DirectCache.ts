@@ -30,10 +30,11 @@ export class DirectCache extends Cache<DirectCacheStep> {
       });
       if (entry.tag === tag) {
         // ÉXITO
-        this.output = entry.block;
+        const index = parseInt(word, 2) * 2;
+        this.output = entry.block.substring(index, index + 2);
         this.addStep({
           id: "cache-hit",
-          info: "Bloque encontrado.",
+          info: `Bloque encontrado: ${entry.block}`,
           value: this.output,
         });
 
@@ -61,7 +62,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
     this.lines[line] = entry;
     this.addStep({
       id: "load-memory",
-      info: `Bloque cargado en línea ${line}`,
+      info: `Cacheando: \nLínea ${line}\nBloque ${entry.block}`,
       value: { line, entry },
     });
   }

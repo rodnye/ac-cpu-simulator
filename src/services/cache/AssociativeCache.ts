@@ -56,7 +56,8 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     }
 
     if (found) {
-      this.output = this.lines[foundLine]!.block;
+      const index = parseInt(word, 2) * 2;
+      this.output = this.lines[foundLine]!.block.substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
         info: `Acierto de caché - Etiqueta encontrada en línea ${foundLine}`,
@@ -79,7 +80,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     this.setSteps([]);
 
     // Buscar línea libre o usar reemplazo aleatorio
-    let freeLine = this.lines.findIndex((l) => l === null);
+    const freeLine = this.lines.findIndex((l) => l === null);
     let selectedLine: number;
 
     if (freeLine !== -1) {
