@@ -1,4 +1,8 @@
-import { hexTo4BitBinary } from "../utils/convert";
+import {
+  binary4BitToHex,
+  hexTo4BitBinary,
+  twoCharacters,
+} from "../utils/convert";
 import { StepManager, type Step } from "./StepManager";
 
 export type MemoryStep = Step & {
@@ -30,6 +34,7 @@ export class Memory extends StepManager<MemoryStep> {
     const bodies = this.generateBodies(50);
 
     for (let i = 0; i < 50; i++) {
+      const twoChar = twoCharacters();
       const hexString = blocksData[i];
       const binaryString = hexTo4BitBinary(hexString);
 
@@ -37,12 +42,14 @@ export class Memory extends StepManager<MemoryStep> {
       this.directCacheArray[directTag] = hexString;
 
       const associativeTag = binaryString.substring(0, 22);
-      this.associativeCacheStrings[associativeTag] = hexString;
+      this.associativeCacheStrings[binary4BitToHex(associativeTag + twoChar)] =
+        hexString.substring(0, 6);
 
       this.directCalls.push(directTag + bodies[i]);
-      this.associativeCalls.push(hexString);
+
+      this.associativeCalls.push(binary4BitToHex(associativeTag + twoChar));
     }
-    console.log(this.directCalls)
+    console.log(this.associativeCalls);
   }
 
   public executeGetDirectBlock(tag: string) {

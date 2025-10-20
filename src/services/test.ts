@@ -1,13 +1,14 @@
 import { Cpu } from "./Cpu";
 
 const cpu = new Cpu();
-const tag = cpu.memory.directCalls[0];
+const tag = cpu.memory.associativeCalls[0];
+console.log(tag);
 
 cpu.on("step", (s) => console.log("\n\n----- CPU:", s));
 cpu.directCache.on("step", (s) => console.log("-------- Cache:", s));
 cpu.memory.on("step", (s) => console.log("--------Memory:", s));
 
-cpu.executeGetWordSetAssociative(tag);
+cpu.executeGetWordAssociative(tag);
 cpu.startTimer(100);
 
 //cpu.once("timer-stop", () => {

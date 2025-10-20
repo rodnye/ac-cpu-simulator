@@ -42,3 +42,13 @@ export function auxBinary4BitToHex(fourBits: string): string {
 
   return hexChar;
 }
+
+export function twoCharacters() {
+  const str = "01";
+  let result = "";
+  for (let i = 0; i < 2; i++) {
+    result += str.charAt((Math.random() * 10) % 2);
+  }
+
+  return result;
+}
