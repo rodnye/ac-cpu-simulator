@@ -1,4 +1,9 @@
+// Cpu.ts - Actualizado con nuevas funcionalidades
 import { DirectCache, type DirectCacheStep } from "./cache/DirectCache";
+import {
+  AssociativeCache,
+  type AssociativeCacheStep,
+} from "./cache/AssociativeCache";
 import { StepManager, StepNextError, type Step } from "./StepManager";
 import { Memory, type MemoryStep } from "./Memory";
 
@@ -7,6 +12,10 @@ export type CpuStep = Step &
     | {
         id: `cache:${string}`;
         value: DirectCacheStep[];
+      }
+    | {
+        id: `set-cache:${string}`;
+        value: AssociativeCacheStep[];
       }
     | {
         id: `memory:${string}`;
@@ -18,10 +27,9 @@ export type CpuStep = Step &
       }
   );
 
-  export type CpuStepValueLessDTO = Omit<CpuStep, "value">;
-
 export class Cpu extends StepManager<CpuStep> {
-  cache: DirectCache;
+  directCache: DirectCache;
+  associativeCache: AssociativeCache;
   memory: Memory;
 
   input: string | null = null;
@@ -29,7 +37,8 @@ export class Cpu extends StepManager<CpuStep> {
 
   constructor() {
     super();
-    this.cache = new DirectCache();
+    this.directCache = new DirectCache();
+    this.associativeCache = new AssociativeCache();
     this.memory = new Memory();
   }
 
@@ -40,8 +49,14 @@ export class Cpu extends StepManager<CpuStep> {
     this.emit("step", currentStep);
 
     if (currentStep.id.startsWith("cache:")) {
-      this.cache.setSteps(currentStep.value as DirectCacheStep[]);
-      if (this.cache.hasNext()) this.cache.next();
+      this.directCache.setSteps(currentStep.value as DirectCacheStep[]);
+      if (this.directCache.hasNext()) this.directCache.next();
+      else this.steps.shift();
+    } else if (currentStep.id.startsWith("set-cache:")) {
+      this.associativeCache.setSteps(
+        currentStep.value as AssociativeCacheStep[],
+      );
+      if (this.associativeCache.hasNext()) this.associativeCache.next();
       else this.steps.shift();
     } else if (currentStep.id.startsWith("memory:")) {
       this.memory.setSteps(currentStep.value as MemoryStep[]);
@@ -52,37 +67,32 @@ export class Cpu extends StepManager<CpuStep> {
     return currentStep;
   }
 
-  public executeGetWord(direccionHex: string) {
-    const { tag, line } = Cpu.parseHexAddress(direccionHex);
-    
-    const cachedValue = this.cache.executeGetLine(direccionHex);
+  public executeGetWordDirect(direccionHex: string) {
+    const { tag, line, word } = Cpu.parseHexAddress(direccionHex);
+
+    const cachedValue = this.directCache.executeGetLine(direccionHex);
     this.addStep({
       id: "cache:get-cache",
-      info: "Esperando respuesta de la caché",
-      value: this.cache.getSteps(),
+      info: "Esperando respuesta de la caché directa",
+      value: this.directCache.getSteps(),
     });
 
     if (cachedValue === null) {
-      const block = this.memory.executeGetBlock(
-        tag as keyof typeof Memory.directCacheStrings,
-      );
+      const block = this.memory.executeGetDirectBlock(tag);
       this.addStep({
         id: "memory:get-block",
         info: "Esperando respuesta de la memoria",
         value: this.memory.getSteps(),
       });
 
-      this.cache.executeSetLine(line, {
-        tag,
-        block,
-      });
+      this.directCache.executeSetLine(line, { tag, block });
       this.addStep({
         id: "cache:set-line",
-        info: "Cargando bloque en la caché",
-        value: this.cache.getSteps(),
+        info: "Cargando bloque en la caché directa",
+        value: this.directCache.getSteps(),
       });
 
-      this.output = block;
+      this.output = this.memory.executeGetDirectWord(tag, word);
     } else {
       this.output = cachedValue;
     }
@@ -92,7 +102,47 @@ export class Cpu extends StepManager<CpuStep> {
       info: "Palabra obtenida exitosamente",
       value: this.output,
     });
-    
+
+    this.emit("execute", "get-word");
+    return this.output;
+  }
+
+  public executeGetWordSetAssociative(direccionHex: string) {
+    const { tag, line, word } = Cpu.parseHexAddress(direccionHex);
+
+    const cachedValue = this.associativeCache.executeGetLine(direccionHex);
+    this.addStep({
+      id: "set-cache:get-cache",
+      info: "Esperando respuesta de la caché asociativa por conjuntos",
+      value: this.associativeCache.getSteps(),
+    });
+
+    if (cachedValue === null) {
+      const block = this.memory.executeGetDirectBlock(tag);
+      this.addStep({
+        id: "memory:get-block",
+        info: "Esperando respuesta de la memoria",
+        value: this.memory.getSteps(),
+      });
+
+      this.associativeCache.executeSetLine(line, { tag, block });
+      this.addStep({
+        id: "set-cache:set-line",
+        info: "Cargando bloque en la caché asociativa por conjuntos",
+        value: this.associativeCache.getSteps(),
+      });
+
+      this.output = this.memory.executeGetDirectWord(tag, word);
+    } else {
+      this.output = cachedValue;
+    }
+
+    this.addStep({
+      id: "get-word",
+      info: "Palabra obtenida exitosamente",
+      value: this.output,
+    });
+
     this.emit("execute", "get-word");
     return this.output;
   }
