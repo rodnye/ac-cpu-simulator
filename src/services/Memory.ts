@@ -1,7 +1,13 @@
-import EventEmitter from "eventemitter3";
+import { StepManager, type Step } from "./StepManager";
 
-export class Memory extends EventEmitter {
-  static directCacheStrings: Record<string, string> = {
+export type MemoryStep = Step & {
+  id: "get-block",
+  value: string
+};
+export type MemoryBlock = string;
+
+export class Memory extends StepManager<MemoryStep> {
+  static directCacheStrings = {
     AA: "AAC00000",
     AB: "ABF00001",
     AC: "ACA00002",
@@ -19,11 +25,27 @@ export class Memory extends EventEmitter {
     C4: "C4B00014",
   };
 
+  input: string | null = null;
+  output: string | null = null;
+
   constructor() {
     super();
   }
 
-  public static getBlock(tag: string) {
-    return this.directCacheStrings[tag];
+  public executeGetBlock(tag: keyof typeof Memory.directCacheStrings) {
+    this.setSteps([]);
+    this.input = tag;
+    this.output = this.getBlock(tag);
+    this.addStep({
+      id: "get-block",
+      info: `Obteniendo bloque desde la etiqueta '${tag}'`,
+      value: this.output,
+    });
+
+    return this.output;
+  }
+
+  private getBlock(tag: keyof typeof Memory.directCacheStrings): MemoryBlock {
+    return Memory.directCacheStrings[tag];
   }
 }

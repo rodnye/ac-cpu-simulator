@@ -1,15 +1,16 @@
-import { CPU } from "./CPU";
+import { Cpu } from "./Cpu";
 
-const cpu = new CPU();
+const cpu = new Cpu();
 
-cpu.start("ABF123");
+cpu.on("step", (s) => console.log("\n\n----- CPU:", s))
+cpu.cache.on("step", (s) => console.log("-------- Cache:", s))
+cpu.memory.on("step", (s) => console.log("--------Memory:", s))
 
-while (cpu.cache.hasNext()) {
-  cpu.cache.next();
-}
+cpu.executeGetWord("ABF123");
+cpu.startTimer(5000);
 
-cpu.start("ABF123");
-
-while (cpu.cache.hasNext()) {
-  cpu.cache.next();
-}
+cpu.once('timer-stop', () => {
+  console.log("\n\n\nTest 2\n\n\n");
+  cpu.executeGetWord("ABF123");
+  cpu.startTimer(5000);
+})
