@@ -10,6 +10,7 @@ cpu.memory.on("step", (s) => console.log("--------Memory:", s));
 
 cpu.executeGetWordAssociative(tag);
 cpu.startTimer(100);
+cpu.executeGetWordAssociative(tag);
 
 //cpu.once("timer-stop", () => {
 //  console.log("\n\n\nTest 2\n\n\n");

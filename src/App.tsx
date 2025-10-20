@@ -13,7 +13,6 @@ import cpuImg from "./assets/cpu_pc_components.png";
 import cacheImg from "./assets/cache_pc_components.png";
 import memoryImg from "./assets/ram_pc_components.png";
 import { ControlPanel } from "./components/controls/ControlPanel.tsx";
-import { CacheTable } from "./components/tables/CacheTable.tsx";
 import type { MemoryStep } from "./services/Memory.ts";
 import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCache.ts";
 import type { DirectCacheStep } from "./services/cache/DirectCache.ts";
@@ -452,9 +451,7 @@ export default function App() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-        >
-          <CacheTable lines={getCacheLines()} cacheType={cacheType} />
-        </motion.div>
+        ></motion.div>
 
         {/* Control Panel */}
         <motion.div

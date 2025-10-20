@@ -17,6 +17,7 @@ export const UserActions = ({
   onCacheTypeChange,
 }: UserActionsProps) => {
   const [text, setText] = useState(cpu.memory.directCalls[0]);
+  const [associativeText, setTexte] = useState(cpu.memory.associativeCalls[0]);
   const [isLoading, setIsLoading] = useState(false);
   const isDisabled = cpu.hasNext();
 
@@ -33,7 +34,7 @@ export const UserActions = ({
         cpu.executeGetWordDirect(text);
         break;
       case "associative":
-        cpu.executeGetWordAssociative(text);
+        cpu.executeGetWordAssociative(associativeText);
         break;
       case "set-associative":
         cpu.executeGetWordSetAssociative(text);

@@ -13,7 +13,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     this.setSteps([]);
     this.input = hexAddress;
 
-    const { tag, word } = Cpu.parseHexAddress(hexAddress);
+    const { tag, word } = Cpu.parseHexAssociativeAddress(hexAddress);
     this.addStep({
       id: "decode-address",
       info: `Decodificación completada | Tag: ${tag} | Palabra: ${word}`,
@@ -101,6 +101,8 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     }
 
     this.lines[selectedLine] = entry;
+    console.log("seteado");
+    console.log(entry);
     this.addStep({
       id: "load-memory",
       info: `Escritura completada | Línea: ${selectedLine} | Bloque: ${entry.block} | Tag: ${entry.tag}`,
