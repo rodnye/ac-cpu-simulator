@@ -1,6 +1,6 @@
 import { Cache, type CacheEntry } from "./Cache";
-import { Cpu } from "../Cpu";
 import type { Step } from "../StepManager";
+import { Cpu } from "../Cpu";
 
 export class DirectCache extends Cache<DirectCacheStep> {
   public executeGetLine(hexAddress: string) {

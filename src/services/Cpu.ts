@@ -1,11 +1,12 @@
 // Cpu.ts - Actualizado con nuevas funcionalidades
 import { DirectCache, type DirectCacheStep } from "./cache/DirectCache";
 import {
-  AssociativeCache,
-  type AssociativeCacheStep,
-} from "./cache/AssociativeCache";
+  SetAssociativeCache,
+  type SetAssociativeCacheStep,
+} from "./cache/SetAssociativeCache";
 import { StepManager, StepNextError, type Step } from "./StepManager";
 import { Memory, type MemoryStep } from "./Memory";
+import { hexTo4BitBinary } from "../utils/convert";
 
 export type CpuStep = Step &
   (
@@ -15,7 +16,7 @@ export type CpuStep = Step &
       }
     | {
         id: `set-cache:${string}`;
-        value: AssociativeCacheStep[];
+        value: SetAssociativeCacheStep[];
       }
     | {
         id: `memory:${string}`;
@@ -29,7 +30,7 @@ export type CpuStep = Step &
 
 export class Cpu extends StepManager<CpuStep> {
   directCache: DirectCache;
-  associativeCache: AssociativeCache;
+  associativeCache: SetAssociativeCache;
   memory: Memory;
 
   input: string | null = null;
@@ -38,7 +39,7 @@ export class Cpu extends StepManager<CpuStep> {
   constructor() {
     super();
     this.directCache = new DirectCache();
-    this.associativeCache = new AssociativeCache();
+    this.associativeCache = new SetAssociativeCache();
     this.memory = new Memory();
   }
 
@@ -54,7 +55,7 @@ export class Cpu extends StepManager<CpuStep> {
       else this.steps.shift();
     } else if (currentStep.id.startsWith("set-cache:")) {
       this.associativeCache.setSteps(
-        currentStep.value as AssociativeCacheStep[],
+        currentStep.value as SetAssociativeCacheStep[],
       );
       if (this.associativeCache.hasNext()) this.associativeCache.next();
       else this.steps.shift();
@@ -106,6 +107,18 @@ export class Cpu extends StepManager<CpuStep> {
     this.emit("execute", "get-word");
     return this.output;
   }
+  static parseHexAddress(direccionHex: string): {
+    tag: string;
+    line: number;
+    word: string;
+  } {
+    const bin = hexTo4BitBinary(direccionHex);
+    return {
+      tag: direccionHex.substring(0, 2),
+      line: parseInt(bin.substring(8, 23)) % 20,
+      word: bin.substring(22, 24),
+    };
+  }
 
   public executeGetWordSetAssociative(direccionHex: string) {
     const { tag, line, word } = Cpu.parseHexAddress(direccionHex);
@@ -145,15 +158,5 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.emit("execute", "get-word");
     return this.output;
-  }
-
-  // Utils
-  public static parseHexAddress(hexAddress: string) {
-    const binary = parseInt(hexAddress, 16).toString(2).padStart(24, "0");
-    return {
-      tag: binary.slice(0, 8),
-      line: parseInt(binary.slice(8, 22), 2),
-      word: binary.slice(22),
-    };
   }
 }

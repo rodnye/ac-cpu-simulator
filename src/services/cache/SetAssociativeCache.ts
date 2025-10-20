@@ -2,7 +2,7 @@ import { Cache, type CacheEntry } from "./Cache";
 import { Cpu } from "../Cpu";
 import type { Step } from "../StepManager";
 
-export class AssociativeCache extends Cache<AssociativeCacheStep> {
+export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
   public sets: Record<number, (CacheEntry | null)[]>;
 
   constructor(linesLen: number = 5) {
@@ -130,7 +130,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
 }
 
 // Step typing
-export type AssociativeCacheStep = Omit<Step, "value"> &
+export type SetAssociativeCacheStep = Omit<Step, "value"> &
   (
     | {
         id: "decode-address";

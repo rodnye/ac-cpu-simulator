@@ -15,7 +15,7 @@ import { ControlPanel } from "./components/controls/ControlPanel.tsx";
 import { CacheTable } from "./components/tables/CacheTable.tsx";
 import { MemoryTable } from "./components/tables/MemoryTable.tsx";
 import type { MemoryStep } from "./services/Memory.ts";
-import type { AssociativeCacheStep } from "./services/cache/AssociativeCache.ts";
+import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCache.ts";
 import type { DirectCacheStep } from "./services/cache/DirectCache.ts";
 import type { CacheEntry } from "./services/cache/Cache.ts";
 
@@ -98,7 +98,7 @@ export default function App() {
         ].join(":");
 
         // FIXME: esto oculta temporalmente los label, estan feos
-        e.label = '';
+        e.label = "";
         return e;
       }),
     );
@@ -196,7 +196,7 @@ export default function App() {
       renderCpu();
     };
 
-    const handleAssociativeCacheStep = (step: AssociativeCacheStep) => {
+    const handleAssociativeCacheStep = (step: SetAssociativeCacheStep) => {
       switch (step.id) {
         case "cache-hit":
           cacheNode.data.status = "success";
