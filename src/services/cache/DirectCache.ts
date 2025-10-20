@@ -1,3 +1,4 @@
+// DirectCache.ts
 import { Cache, type CacheEntry } from "./Cache";
 import type { Step } from "../StepManager";
 import { Cpu } from "../Cpu";
@@ -12,21 +13,21 @@ export class DirectCache extends Cache<DirectCacheStep> {
 
     this.addStep({
       id: "decode-address",
-      info: `Dirección decodificada: tag=${tag}, línea=${line}, palabra=${word}`,
+      info: `Decodificación completada | Tag: ${tag} | Línea: ${line} | Palabra: ${word}`,
       value: { tag, line, word },
     });
 
     const entry = this.lines[line];
     this.addStep({
       id: "verify-line",
-      info: `Buscando en la línea ${line}`,
+      info: `Acceso a línea ${line} | Verificación de contenido`,
       value: line,
     });
 
     if (entry) {
       this.addStep({
         id: "verify-tag",
-        info: "Línea encontrada, verificando etiqueta",
+        info: "Validación de etiqueta | Comparación tag almacenado vs solicitado",
       });
       if (entry.tag === tag) {
         // ÉXITO
@@ -34,7 +35,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
         this.output = entry.block.substring(index, index + 2);
         this.addStep({
           id: "cache-hit",
-          info: `Bloque encontrado: ${entry.block}`,
+          info: `HIT | Bloque recuperado: ${entry.block} | Output: ${this.output}`,
           value: this.output,
         });
 
@@ -42,13 +43,13 @@ export class DirectCache extends Cache<DirectCacheStep> {
       } else {
         this.addStep({
           id: "cache-miss",
-          info: "Etiqueta no coincide, fallo de caché",
+          info: "MISS | Tag no coincide | Bloque inválido",
         });
       }
     } else {
       this.addStep({
         id: "cache-miss",
-        info: "Fallo de caché: no hay bloque en la línea",
+        info: "MISS | Línea vacía | Bloque no presente en caché",
       });
     }
 
@@ -62,7 +63,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
     this.lines[line] = entry;
     this.addStep({
       id: "load-memory",
-      info: `Cacheando: \nLínea ${line}\nBloque ${entry.block}`,
+      info: `Escritura completada | Línea: ${line} | Bloque: ${entry.block} | Tag: ${entry.tag}`,
       value: { line, entry },
     });
   }

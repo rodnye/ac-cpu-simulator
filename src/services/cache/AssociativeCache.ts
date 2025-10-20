@@ -1,3 +1,4 @@
+// AssociativeCache.ts
 import { Cache, type CacheEntry } from "./Cache";
 import { Cpu } from "../Cpu";
 import type { Step } from "../StepManager";
@@ -15,13 +16,13 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     const { tag, word } = Cpu.parseHexAddress(hexAddress);
     this.addStep({
       id: "decode-address",
-      info: `Dirección decodificada: tag=${tag}, palabra=${word}`,
+      info: `Decodificación completada | Tag: ${tag} | Palabra: ${word}`,
       value: { tag, word },
     });
 
     this.addStep({
       id: "search-tag",
-      info: `Buscando etiqueta ${tag} en todas las líneas de caché`,
+      info: `Búsqueda asociativa iniciada | Target tag: ${tag}`,
       value: tag,
     });
 
@@ -36,20 +37,20 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
         foundLine = i;
         this.addStep({
           id: "check-line",
-          info: `Línea ${i}: etiqueta coincide - ACIERTO`,
+          info: `Línea ${i} | MATCH | Tag coincidente encontrado`,
           value: { line: i, match: true },
         });
         break;
       } else if (entry) {
         this.addStep({
           id: "check-line",
-          info: `Línea ${i}: etiqueta=${entry.tag} - NO coincide`,
+          info: `Línea ${i} | NO MATCH | Tag actual: ${entry.tag}`,
           value: { line: i, match: false },
         });
       } else {
         this.addStep({
           id: "check-line",
-          info: `Línea ${i}: vacía`,
+          info: `Línea ${i} | EMPTY | Sin datos almacenados`,
           value: { line: i, empty: true },
         });
       }
@@ -60,7 +61,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
       this.output = this.lines[foundLine]!.block.substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
-        info: `Acierto de caché - Etiqueta encontrada en línea ${foundLine}`,
+        info: `HIT | Línea: ${foundLine} | Output: ${this.output}`,
         value: this.output,
       });
       return this.output;
@@ -68,7 +69,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
 
     this.addStep({
       id: "cache-miss",
-      info: "Etiqueta no encontrada - FALLO de caché",
+      info: "MISS | Tag no encontrado en caché completa",
     });
 
     this.output = null;
@@ -87,14 +88,14 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
       selectedLine = freeLine;
       this.addStep({
         id: "select-line",
-        info: `Línea ${selectedLine} está libre - se usará para cargar el bloque`,
+        info: `Asignación a línea libre | Línea: ${selectedLine}`,
         value: { line: selectedLine, free: true },
       });
     } else {
       selectedLine = Math.floor(Math.random() * this.lines.length);
       this.addStep({
         id: "select-line",
-        info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${selectedLine}`,
+        info: `Reemplazo aleatorio | Línea seleccionada: ${selectedLine}`,
         value: { line: selectedLine, replacement: true },
       });
     }
@@ -102,7 +103,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     this.lines[selectedLine] = entry;
     this.addStep({
       id: "load-memory",
-      info: `Bloque cargado en línea ${selectedLine}`,
+      info: `Escritura completada | Línea: ${selectedLine} | Bloque: ${entry.block} | Tag: ${entry.tag}`,
       value: { line: selectedLine, entry },
     });
   }
