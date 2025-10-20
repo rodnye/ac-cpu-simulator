@@ -78,7 +78,7 @@ export class Cpu extends StepManager<CpuStep> {
     const cachedValue = this.directCache.executeGetLine(direccionHex);
     this.addStep({
       id: "cache:get-cache",
-      info: "Esperando respuesta de la caché directa",
+      info: "Esperando respuesta de: caché directa",
       value: this.directCache.getSteps(),
     });
 
@@ -86,14 +86,14 @@ export class Cpu extends StepManager<CpuStep> {
       const block = this.memory.executeGetDirectBlock(tag);
       this.addStep({
         id: "memory:get-block",
-        info: "Esperando respuesta de la memoria",
+        info: "Esperando respuesta de: memoria",
         value: this.memory.getSteps(),
       });
 
       this.directCache.executeSetLine(line, { tag, block });
       this.addStep({
         id: "cache:set-line",
-        info: "Cargando bloque en la caché directa",
+        info: "Almacenando bloque en caché directa",
         value: this.directCache.getSteps(),
       });
 
@@ -104,7 +104,7 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: `Palabra obtenida exitosamente: ${this.output}`,
+      info: `Dato obtenido: ${this.output}`,
       value: this.output,
     });
 
@@ -118,7 +118,7 @@ export class Cpu extends StepManager<CpuStep> {
     const cachedValue = this.setAssociativeCache.executeGetLine(direccionHex);
     this.addStep({
       id: "set-cache:get-cache",
-      info: "Esperando respuesta de la caché asociativa por conjuntos",
+      info: "Esperando respuesta de: caché asociativa por conjuntos",
       value: this.setAssociativeCache.getSteps(),
     });
 
@@ -126,14 +126,14 @@ export class Cpu extends StepManager<CpuStep> {
       const block = this.memory.executeGetDirectBlock(tag);
       this.addStep({
         id: "memory:get-block",
-        info: "Esperando respuesta de la memoria",
+        info: "Esperando respuesta de: memoria",
         value: this.memory.getSteps(),
       });
 
       this.setAssociativeCache.executeSetLine(line, { tag, block });
       this.addStep({
         id: "set-cache:set-line",
-        info: "Cargando bloque en la caché asociativa por conjuntos",
+        info: "Almacenando bloque en caché asociativa por conjuntos",
         value: this.setAssociativeCache.getSteps(),
       });
 
@@ -144,7 +144,7 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: "Palabra obtenida exitosamente",
+      info: "Palabra obtenida",
       value: this.output,
     });
 
@@ -158,7 +158,7 @@ export class Cpu extends StepManager<CpuStep> {
     const cachedValue = this.associativeCache.executeGetLine(direccionHex);
     this.addStep({
       id: "cache:get-cache",
-      info: "Esperando respuesta de la caché totalmente asociativa",
+      info: "Esperando respuesta de: caché asociativa",
       value: this.associativeCache.getSteps(),
     });
 
@@ -166,7 +166,7 @@ export class Cpu extends StepManager<CpuStep> {
       const block = this.memory.executeGetAssociativeBlock(tag);
       this.addStep({
         id: "memory:get-block",
-        info: "Esperando respuesta de la memoria",
+        info: "Esperando respuesta de: memoria",
         value: this.memory.getSteps(),
       });
 
@@ -174,7 +174,7 @@ export class Cpu extends StepManager<CpuStep> {
       this.associativeCache.executeSetLine(0, { tag, block }); // línea se ignora internamente
       this.addStep({
         id: "cache:set-line",
-        info: "Cargando bloque en la caché totalmente asociativa",
+        info: "Cargando bloque en: caché asociativa",
         value: this.associativeCache.getSteps(),
       });
 
@@ -185,7 +185,7 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: "Palabra obtenida exitosamente",
+      info: "Palabra obtenida",
       value: this.output,
     });
 

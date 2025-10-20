@@ -59,7 +59,7 @@ export class Memory extends StepManager<MemoryStep> {
 
     this.addStep({
       id: "get-block",
-      info: `Obteniendo bloque directo desde la etiqueta '${tag}'`,
+      info: `Obteniendo bloque: etiqueta: '${tag}'`,
       value: this.output,
     });
 
@@ -74,7 +74,7 @@ export class Memory extends StepManager<MemoryStep> {
 
     this.addStep({
       id: "get-word",
-      info: `Obteniendo palabra desde tag '${tag}', índice '${wordIndex}'`,
+      info: `Obteniendo palabra: tag '${tag}', índice '${wordIndex}'`,
       value: this.output,
     });
 
@@ -88,7 +88,7 @@ export class Memory extends StepManager<MemoryStep> {
 
     this.addStep({
       id: "get-block",
-      info: `Obteniendo bloque asociativo desde la etiqueta '${tag}'`,
+      info: `Obteniendo bloque, etiqueta '${tag}'`,
       value: this.output,
     });
 
@@ -103,7 +103,7 @@ export class Memory extends StepManager<MemoryStep> {
 
     this.addStep({
       id: "get-word",
-      info: `Obteniendo palabra asociativa desde tag '${tag}', índice '${wordIndex}'`,
+      info: `Obteniendo palabra: tag '${tag}', índice '${wordIndex}'`,
       value: this.output,
     });
 
