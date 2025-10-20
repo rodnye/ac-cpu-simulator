@@ -7,6 +7,7 @@ import {
   ComputerNode,
   type IComputerNodeData,
 } from "./components/nodes/ComputerNode.tsx";
+import { motion } from "framer-motion";
 
 import cpuImg from "./assets/cpu_pc_components.png";
 import cacheImg from "./assets/cache_pc_components.png";
@@ -24,7 +25,9 @@ const initialNodes: IComputerNodeData[] = [
     id: "cpu",
     position: { x: 100, y: 7 },
     data: {
-      Component: () => <img src={cpuImg} className="w-24" />,
+      Component: () => (
+        <img src={cpuImg} className="w-24 filter brightness-110" />
+      ),
       status: "idle",
       statusText: "",
       statusPosition: "right",
@@ -35,7 +38,9 @@ const initialNodes: IComputerNodeData[] = [
     id: "cache",
     position: { x: 0, y: 0 },
     data: {
-      Component: () => <img src={cacheImg} className="h-12" />,
+      Component: () => (
+        <img src={cacheImg} className="h-12 filter brightness-110" />
+      ),
       status: "idle",
       statusText: "",
       statusPosition: "left",
@@ -47,7 +52,9 @@ const initialNodes: IComputerNodeData[] = [
     position: { x: 100, y: 250 },
     type: "component",
     data: {
-      Component: () => <img src={memoryImg} className="w-24 h-16" />,
+      Component: () => (
+        <img src={memoryImg} className="w-24 h-16 filter brightness-110" />
+      ),
       status: "idle",
       statusText: "",
       statusPosition: "right",
@@ -56,9 +63,21 @@ const initialNodes: IComputerNodeData[] = [
 ] as const;
 
 const cacheOptions = [
-  { value: "direct", label: "Caché Directa" },
-  { value: "associative", label: "Caché Asociativa" },
-  { value: "set-associative", label: "Caché Asociativa por Conjuntos" },
+  {
+    value: "direct",
+    label: "Caché Directa",
+    color: "from-cyan-500 to-blue-500",
+  },
+  {
+    value: "associative",
+    label: "Caché Asociativa",
+    color: "from-purple-500 to-pink-500",
+  },
+  {
+    value: "set-associative",
+    label: "Caché Asociativa por Conjuntos",
+    color: "from-orange-500 to-red-500",
+  },
 ];
 
 const initialEdges: Edge[] = [
@@ -69,7 +88,7 @@ const initialEdges: Edge[] = [
     target: "cache",
     labelShowBg: false,
     type: "step",
-    style: { stroke: "#666", strokeWidth: "3px" },
+    style: { stroke: "#4B5563", strokeWidth: "3px" },
   },
   {
     id: "cpu-memory",
@@ -79,7 +98,7 @@ const initialEdges: Edge[] = [
     targetHandle: "left",
     type: "step",
     labelShowBg: false,
-    style: { stroke: "#666", strokeWidth: "3px" },
+    style: { stroke: "#4B5563", strokeWidth: "3px" },
   },
 ] as const;
 
@@ -93,6 +112,7 @@ export default function App() {
     "direct" | "associative" | "set-associative"
   >("direct");
   const [{ cpu }, setCpuWrapper] = useState({ cpu: cpuManager });
+  const [, setIsInitialized] = useState(false);
 
   const renderCpu = () => setCpuWrapper({ cpu });
   const renderNodes = () => setNodes([...nodes]);
@@ -139,6 +159,10 @@ export default function App() {
   };
 
   useEffect(() => {
+    setIsInitialized(true);
+  }, []);
+
+  useEffect(() => {
     const { memory, directCache, associativeCache, setAssociativeCache } =
       cpuManager;
     const [cpuNode, cacheNode, memoryNode] = nodes;
@@ -152,6 +176,8 @@ export default function App() {
         cpuCacheEdge.animated = true;
         cpuCacheEdge.style = {
           ...cpuCacheEdge.style,
+          stroke: "#06B6D4",
+          strokeWidth: "4px",
           animationDirection:
             step.value.length > 1 || step.id.includes("set-line")
               ? "normal"
@@ -173,6 +199,8 @@ export default function App() {
         cpuMemoryEdge.animated = true;
         cpuMemoryEdge.style = {
           ...cpuMemoryEdge.style,
+          stroke: "#8B5CF6",
+          strokeWidth: "4px",
           animationDirection: "reverse",
         };
         renderEdges();
@@ -187,15 +215,30 @@ export default function App() {
         case "cache-hit":
           cacheNode.data.status = "success";
           cpuCacheEdge.label = step.value;
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#10B981",
+            strokeWidth: "4px",
+          };
           renderEdges();
           break;
         case "load-memory":
           cacheNode.data.status = "success";
           cpuCacheEdge.label = step.value.line + ":" + step.value.entry.tag;
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#06B6D4",
+            strokeWidth: "4px",
+          };
           renderEdges();
           break;
         case "cache-miss":
           cacheNode.data.status = "error";
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#EF4444",
+            strokeWidth: "4px",
+          };
           break;
         default:
           cacheNode.data.status = "active";
@@ -212,15 +255,30 @@ export default function App() {
         case "cache-hit":
           cacheNode.data.status = "success";
           cpuCacheEdge.label = step.value;
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#10B981",
+            strokeWidth: "4px",
+          };
           renderEdges();
           break;
         case "load-memory":
           cacheNode.data.status = "success";
           cpuCacheEdge.label = step.value.line + ":" + step.value.entry.tag;
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#06B6D4",
+            strokeWidth: "4px",
+          };
           renderEdges();
           break;
         case "cache-miss":
           cacheNode.data.status = "error";
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#EF4444",
+            strokeWidth: "4px",
+          };
           break;
         default:
           cacheNode.data.status = "active";
@@ -236,7 +294,11 @@ export default function App() {
       switch (step.id) {
         case "cache-hit":
           cacheNode.data.status = "success";
-          //cpuCacheEdge.label = step.value;
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#10B981",
+            strokeWidth: "4px",
+          };
           renderEdges();
           break;
         case "load-memory": {
@@ -246,11 +308,21 @@ export default function App() {
           const wayInfo =
             step.value.way !== undefined ? `Way ${step.value.way}` : "";
           cpuCacheEdge.label = setInfo + wayInfo + ":" + step.value.entry.tag;
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#06B6D4",
+            strokeWidth: "4px",
+          };
           renderEdges();
           break;
         }
         case "cache-miss":
           cacheNode.data.status = "error";
+          cpuCacheEdge.style = {
+            ...cpuCacheEdge.style,
+            stroke: "#EF4444",
+            strokeWidth: "4px",
+          };
           break;
         default:
           cacheNode.data.status = "active";
@@ -280,7 +352,6 @@ export default function App() {
     directCache.on("execute", renderCpu);
     setAssociativeCache.on("step", handleSetAssociativeCacheStep);
     setAssociativeCache.on("execute", renderCpu);
-    //associativeCache.on("step", handleAssociativeCacheStep);
     associativeCache.on("execute", renderCpu);
 
     // Cleanup function
@@ -305,7 +376,10 @@ export default function App() {
 
   return (
     <>
-      <div className="relative" style={{ width: "100vw", height: "100vh" }}>
+      <div
+        className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
+        style={{ width: "100vw", height: "100vh" }}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -314,41 +388,81 @@ export default function App() {
           }}
           fitView
         >
-          <Background />
+          <Background color="#4B5563" gap={32} />
         </ReactFlow>
 
-        <div className="absolute top-0 left-0 h-full flex flex-col">
-          <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+        {/* Cache Type Selector */}
+        <motion.div
+          className="absolute top-4 left-4"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        ></motion.div>
+
+        {/* User Actions */}
+        <motion.div
+          className="absolute top-0 left-0 flex flex-col"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <div className="bg-gray-800/90 backdrop-blur-xl border border-gray-700/60 rounded-2xl shadow-2xl p-6">
+            <label className="block text-sm font-semibold text-cyan-200 mb-4">
               Tipo de Caché:
             </label>
 
-            <div className="space-y-2">
+            <div className="space-y-3">
               {cacheOptions.map((option) => (
-                <label key={option.value} className="flex items-center">
+                <motion.label
+                  key={option.value}
+                  className="flex items-center cursor-pointer group"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
                   <input
                     type="radio"
                     value={option.value}
                     checked={cacheType === option.value}
                     onChange={(e) => setCacheType(e.target.value as CacheType)}
-                    className="mr-2 text-blue-600 focus:ring-blue-500"
+                    className="mr-3 text-cyan-500 focus:ring-cyan-500 border-gray-600 bg-gray-700"
                   />
-                  {option.label}
-                </label>
+                  <span
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                      cacheType === option.value
+                        ? `bg-gradient-to-r ${option.color} text-white shadow-lg`
+                        : "text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700"
+                    }`}
+                  >
+                    {option.label}
+                  </span>
+                </motion.label>
               ))}
             </div>
           </div>
-
           <UserActions
             cpu={cpu}
             cacheType={cacheType}
             onCacheTypeChange={setCacheType}
           />
-        </div>
-        <div className="absolute bottom-0 right-0 flex flex-row h-1/2">
+        </motion.div>
+
+        {/* Cache Table */}
+        <motion.div
+          className="absolute bottom-4 right-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
           <CacheTable lines={getCacheLines()} cacheType={cacheType} />
-        </div>
-        <div className="absolute top-0 right-0">
+        </motion.div>
+
+        {/* Control Panel */}
+        <motion.div
+          className="absolute top-4 right-4"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
           <ControlPanel
             onNext={() => {
               clearStatus();
@@ -360,6 +474,34 @@ export default function App() {
             hasNext={cpu.hasNext()}
             totalSteps={totalSteps}
             currentStep={totalSteps - cpuManager.getSteps().length}
+          />
+        </motion.div>
+
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 pointer-events-none">
+          <motion.div
+            className="absolute top-1/4 left-1/4 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl"
+            animate={{
+              scale: [1, 1.2, 1],
+              opacity: [0.3, 0.5, 0.3],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+          <motion.div
+            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"
+            animate={{
+              scale: [1.2, 1, 1.2],
+              opacity: [0.4, 0.2, 0.4],
+            }}
+            transition={{
+              duration: 10,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
           />
         </div>
       </div>
