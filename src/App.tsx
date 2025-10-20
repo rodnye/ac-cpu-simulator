@@ -13,7 +13,6 @@ import cacheImg from "./assets/cache_pc_components.png";
 import memoryImg from "./assets/ram_pc_components.png";
 import { ControlPanel } from "./components/controls/ControlPanel.tsx";
 import { CacheTable } from "./components/tables/CacheTable.tsx";
-import { MemoryTable } from "./components/tables/MemoryTable.tsx";
 import type { MemoryStep } from "./services/Memory.ts";
 import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCache.ts";
 import type { DirectCacheStep } from "./services/cache/DirectCache.ts";
@@ -23,12 +22,12 @@ import type { AssociativeCacheStep } from "./services/cache/AssociativeCache.ts"
 const initialNodes: IComputerNodeData[] = [
   {
     id: "cpu",
-    position: { x: 7, y: 100 },
+    position: { x: 100, y: 7 },
     data: {
-      Component: () => <img src={cpuImg} className="w-16" />,
+      Component: () => <img src={cpuImg} className="w-24" />,
       status: "idle",
       statusText: "",
-      statusPosition: "left",
+      statusPosition: "right",
     },
     type: "component",
   },
@@ -36,7 +35,7 @@ const initialNodes: IComputerNodeData[] = [
     id: "cache",
     position: { x: 0, y: 0 },
     data: {
-      Component: () => <img src={cacheImg} className="w-16" />,
+      Component: () => <img src={cacheImg} className="h-12" />,
       status: "idle",
       statusText: "",
       statusPosition: "left",
@@ -45,24 +44,31 @@ const initialNodes: IComputerNodeData[] = [
   },
   {
     id: "memory",
-    position: { x: 250, y: 100 },
+    position: { x: 100, y: 250 },
     type: "component",
     data: {
-      Component: () => <img src={memoryImg} className="w-24" />,
+      Component: () => <img src={memoryImg} className="w-24 h-16" />,
       status: "idle",
       statusText: "",
-      statusPosition: "top",
+      statusPosition: "right",
     },
   },
 ] as const;
+
+const cacheOptions = [
+  { value: "direct", label: "Caché Directa" },
+  { value: "associative", label: "Caché Asociativa" },
+  { value: "set-associative", label: "Caché Asociativa por Conjuntos" },
+];
 
 const initialEdges: Edge[] = [
   {
     id: "cpu-cache",
     source: "cpu",
-    sourceHandle: "top",
+    sourceHandle: "left",
     target: "cache",
     labelShowBg: false,
+    type: "step",
     style: { stroke: "#666", strokeWidth: "3px" },
   },
   {
@@ -71,6 +77,7 @@ const initialEdges: Edge[] = [
     sourceHandle: "right",
     target: "memory",
     targetHandle: "left",
+    type: "step",
     labelShowBg: false,
     style: { stroke: "#666", strokeWidth: "3px" },
   },
@@ -310,24 +317,26 @@ export default function App() {
           <Background />
         </ReactFlow>
 
-        <div className="absolute top-0 right-0 h-full flex flex-col">
+        <div className="absolute top-0 left-0 h-full flex flex-col">
           <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo de Caché:
             </label>
-            <select
-              value={cacheType}
-              onChange={(e) =>
-                setCacheType(e.target.value as CacheType)
-              }
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="direct">Caché Directa</option>
-              <option value="associative">Caché Asociativa</option>
-              <option value="set-associative">
-                Caché Asociativa por Conjuntos
-              </option>
-            </select>
+
+            <div className="space-y-2">
+              {cacheOptions.map((option) => (
+                <label key={option.value} className="flex items-center">
+                  <input
+                    type="radio"
+                    value={option.value}
+                    checked={cacheType === option.value}
+                    onChange={(e) => setCacheType(e.target.value as CacheType)}
+                    className="mr-2 text-blue-600 focus:ring-blue-500"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
           </div>
 
           <UserActions
@@ -335,12 +344,11 @@ export default function App() {
             cacheType={cacheType}
             onCacheTypeChange={setCacheType}
           />
-          <div className="flex flex-row">
-            <MemoryTable memoryData={cpu.memory.directCacheArray} />
-            <CacheTable lines={getCacheLines()} cacheType={cacheType} />
-          </div>
         </div>
-        <div className="absolute bottom-0 left-0">
+        <div className="absolute bottom-0 right-0 flex flex-row h-1/2">
+          <CacheTable lines={getCacheLines()} cacheType={cacheType} />
+        </div>
+        <div className="absolute top-0 right-0">
           <ControlPanel
             onNext={() => {
               clearStatus();

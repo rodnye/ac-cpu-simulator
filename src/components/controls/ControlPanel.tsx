@@ -43,28 +43,6 @@ export function ControlPanel({
       )}
 
       <div className="flex flex-row items-center justify-between gap-4">
-        {/* FIXME: se rompe el flujo
-        <Button
-          variant={isRunning ? "danger" : "secondary"}
-          disabled={!hasNext && !isRunning}
-          onClick={() => {
-            if (isRunning) onStop();
-            else onReset();
-          }}
-          className="flex items-center gap-2 min-w-[120px] justify-center"
-        >
-          {isRunning ? (
-            <>
-              <StopIcon />
-              Detener
-            </>
-          ) : (
-            <>
-              <ResetIcon />
-              Reanudar
-            </>
-          )}
-        </Button>*/}
 
         <Button
           onClick={onNext}
@@ -72,7 +50,7 @@ export function ControlPanel({
           className="flex items-center gap-2 min-w-[120px] justify-center"
         >
           <NextIcon />
-          Siguiente
+          Next {"->"}
         </Button>
       </div>
 
