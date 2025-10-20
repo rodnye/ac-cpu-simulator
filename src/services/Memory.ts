@@ -42,6 +42,7 @@ export class Memory extends StepManager<MemoryStep> {
       this.directCalls.push(directTag + bodies[i]);
       this.associativeCalls.push(hexString);
     }
+    console.log(this.directCalls)
   }
 
   public executeGetDirectBlock(tag: string) {
