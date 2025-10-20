@@ -16,6 +16,7 @@ export const UserActions = ({
   onCacheTypeChange,
 }: UserActionsProps) => {
   const [text, setText] = useState(cpu.memory.directCalls[0]);
+  const [associativeText, setTexte] = useState(cpu.memory.associativeCalls[0]);
   const isDisabled = cpu.hasNext();
 
   return (
@@ -25,7 +26,10 @@ export const UserActions = ({
         onChange={(e) => setText(e.target.value)}
         className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 cursor-pointer transition duration-200 ease-in-out hover:border-gray-400"
       >
-        {(cacheType !== 'associative' ? cpu.memory.directCalls : cpu.memory.associativeCalls).map((tag, index) => (
+        {(cacheType !== "associative"
+          ? cpu.memory.directCalls
+          : cpu.memory.associativeCalls
+        ).map((tag, index) => (
           <option key={index} value={tag}>
             {tag}
           </option>
@@ -37,17 +41,22 @@ export const UserActions = ({
           disabled={isDisabled}
           onClick={() => {
             if (onCacheTypeChange) onCacheTypeChange(cacheType);
-            switch(cacheType) {
-              case "direct": cpu.executeGetWordDirect(text); break;
-              case "associative": cpu.executeGetWordAssociative(text); break;
-              case "set-associative": cpu.executeGetWordSetAssociative(text); break;
+            switch (cacheType) {
+              case "direct":
+                cpu.executeGetWordDirect(text);
+                break;
+              case "associative":
+                cpu.executeGetWordAssociative(associativeText);
+                break;
+              case "set-associative":
+                cpu.executeGetWordSetAssociative(text);
+                break;
             }
             cpu.next(); // first step
           }}
         >
           Ejecutar Caché
         </Button>
-        
       </div>
     </div>
   );

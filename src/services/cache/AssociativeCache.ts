@@ -12,7 +12,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     this.setSteps([]);
     this.input = hexAddress;
 
-    const { tag, word } = Cpu.parseHexAddress(hexAddress);
+    const { tag, word } = Cpu.parseHexAssociativeAddress(hexAddress);
     this.addStep({
       id: "decode-address",
       info: `Dirección decodificada: tag=${tag}, palabra=${word}`,
