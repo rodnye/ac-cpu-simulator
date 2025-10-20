@@ -96,6 +96,9 @@ export default function App() {
           e.animated,
           e.style!.animationDirection,
         ].join(":");
+
+        // FIXME: esto oculta temporalmente los label, estan feos
+        e.label = '';
         return e;
       }),
     );
@@ -115,7 +118,7 @@ export default function App() {
     } else {
       // For set-associative cache, flatten the sets
       const setCache = cpu.associativeCache;
-      const allLines: (CacheEntry|null)[] = [];
+      const allLines: (CacheEntry | null)[] = [];
       Object.values(setCache.sets || {}).forEach((set) => {
         if (Array.isArray(set)) {
           allLines.push(...set);
@@ -197,7 +200,7 @@ export default function App() {
       switch (step.id) {
         case "cache-hit":
           cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value;
+          //cpuCacheEdge.label = step.value;
           renderEdges();
           break;
         case "load-memory": {
@@ -258,8 +261,8 @@ export default function App() {
       associativeCache.off("step", handleAssociativeCacheStep);
       associativeCache.off("execute");
     };
-  }); 
-  
+  });
+
   return (
     <>
       <div className="relative" style={{ width: "100vw", height: "100vh" }}>
@@ -273,8 +276,8 @@ export default function App() {
         >
           <Background />
         </ReactFlow>
-        <div className="absolute top-0 right-0">
-          {/* Cache Type Selector */}
+
+        <div className="absolute top-0 right-0 h-full flex flex-col">
           <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Tipo de Caché:
@@ -298,12 +301,10 @@ export default function App() {
             cacheType={cacheType}
             onCacheTypeChange={setCacheType}
           />
-
-          {/* Show memory data from the new Memory class */}
-          <MemoryTable memoryData={cpu.memory.directCacheArray} />
-
-          {/* Show cache data based on current cache type */}
-          <CacheTable lines={getCacheLines()} cacheType={cacheType} />
+          <div className="flex flex-row">
+            <MemoryTable memoryData={cpu.memory.directCacheArray} />
+            <CacheTable lines={getCacheLines()} cacheType={cacheType} />
+          </div>
         </div>
         <div className="absolute bottom-0 left-0">
           <ControlPanel

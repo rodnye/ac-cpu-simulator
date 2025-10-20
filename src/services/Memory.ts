@@ -139,7 +139,7 @@ export class Memory extends StepManager<MemoryStep> {
 
   private generateBodies(quantity: number): string[] {
     const characters = "ABCDEF0123456789";
-    const length = 6;
+    const length = 4;
     const stringArray: string[] = [];
 
     for (let i = 0; i < quantity; i++) {
