@@ -1,6 +1,3 @@
-// components/TextField.tsx
-import React from 'react';
-
 interface TextFieldProps {
   label?: string;
   placeholder?: string;
