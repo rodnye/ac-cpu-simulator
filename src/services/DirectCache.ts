@@ -1,3 +1,4 @@
+import { hexTo4BitBinary } from "../utils/convert";
 import { Cache } from "./Cache";
 import { Memory } from "./Memory";
 
@@ -11,9 +12,10 @@ export class CacheDirecta extends Cache {
   public executeCache(direccionHex: string): void {
     this.steps = [];
 
-    const bin = parseInt(direccionHex, 16).toString(2).padStart(24, "0");
-    const tag = bin.substring(0, 8);
-    const linea = parseInt(bin.substring(9, 23), 2) % 20;
+    const bin = hexTo4BitBinary(direccionHex);
+    const tag = direccionHex.substring(0, 2);
+
+    const linea = parseInt(bin.substring(8, 23)) % 20;
     const palabra = bin.substring(23, 25);
 
     this.addStep(
@@ -47,12 +49,12 @@ export class CacheDirecta extends Cache {
         `Bloque reemplazado desde memoria en línea ${linea}`,
         bloque,
       );
-      this.addStep("cache-success", "Dato enviado a la CPU");
+      this.addStep("send-word", "Dato enviado a la CPU desde la memoria");
     } else {
       this.addStep("verify-tag", "Etiqueta coincide, acierto de caché");
       this.addStep(
-        "cache-success",
-        "Dato enviado a la CPU",
+        "send-word",
+        "Dato enviado a la CPU desde la memoria",
         this.memory.getDirectWord(tag, palabra),
       );
     }

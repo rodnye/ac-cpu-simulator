@@ -1,8 +1,14 @@
 import EventEmitter from "eventemitter3";
-import { binary4BitToHex, hexTo4BitBinary } from "../utils/convert";
-import { generarCadenasUnicas } from "../utils/block-gernerator";
+import { hexTo4BitBinary } from "../utils/convert";
+import {
+  generarCadenasUnicas,
+  generarCuerpos,
+  generarTagsUnicos,
+} from "../utils/block-gernerator";
 
 export const blocksData = generarCadenasUnicas(50);
+export const uniqueTags = generarTagsUnicos(50);
+export const cuerpos = generarCuerpos(50);
 
 export class Memory extends EventEmitter {
   directCacheArray: Record<string, string>;
@@ -23,25 +29,25 @@ export class Memory extends EventEmitter {
     let binaryString: string;
     let directTag: string;
     let associativeTag: string;
+    let hexString: string;
 
-    let tag2Hex: string;
-    let cadena: string;
-
-    for (let hexString of blocksData) {
+    for (let i = 0; i < 50; i++) {
+      hexString = blocksData[i];
       binaryString = hexTo4BitBinary(hexString);
-      directTag = binaryString.substring(0, 8);
-      associativeTag = binaryString.substring(0, 22);
+
+      directTag = uniqueTags[i];
       this.directCacheArray[directTag] = hexString;
+
+      associativeTag = binaryString.substring(0, 22);
       this.associativeCacheStrings[associativeTag] = hexString;
 
       //Crear direcciones de entrada validas para cache directa
-      tag2Hex = binary4BitToHex(directTag);
-      cadena = binary4BitToHex(binaryString.slice(8, 24));
-      this.directCalls.push(directTag);
+      this.directCalls.push(directTag + cuerpos[i]);
 
       //Crear direcciones de entrada validas para cache asociativa
       this.associativeCalls.push(hexString);
     }
+    console.log(this.directCalls);
   }
 
   public getDirectBlock(tag: string) {
