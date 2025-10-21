@@ -16,7 +16,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     const { tag, word } = Cpu.parseHexAssociativeAddress(hexAddress);
     this.addStep({
       id: "decode-address",
-      info: `🔍 DECODIFICACIÓN\nTag: ${tag}\nPalabra: ${word}`,
+      info: `🔍 DECODIFICACIÓN\nTag+Palabra: ${tag}\nPalabra: ${word}`,
       value: { tag, word },
     });
 
