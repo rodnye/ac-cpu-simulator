@@ -31,7 +31,7 @@ export const ComputerNode = ({
 }) => {
   const getPositionClasses = () => {
     const baseClasses =
-      "absolute px-3 py-1.5 rounded-xl text-xs font-semibold text-white backdrop-blur-sm border transition-all duration-300 ease-out ";
+      "absolute px-3 py-2 rounded-xl text-xs font-semibold text-white backdrop-blur-sm border transition-all duration-300 ease-out max-w-sm min-w-[120px]";
     const animationClass = status !== "idle" ? "animate-pulse-short" : "";
 
     switch (statusPosition) {
@@ -63,6 +63,15 @@ export const ComputerNode = ({
     }
   };
 
+  // Componente para formatear el texto con saltos de línea
+  const StatusText = ({ text }: { text: string }) => {
+    return (
+      <div className="whitespace-pre-wrap text-center leading-tight">
+        {text}
+      </div>
+    );
+  };
+
   return (
     <div className="relative p-2 rounded-xl bg-gradient-to-br from-slate-900/50 to-slate-800/30 border border-slate-700/50 backdrop-blur-sm transition-all duration-300 hover:border-slate-600/60 hover:shadow-xl hover:shadow-slate-900/20">
       <div className="transition-transform duration-300 hover:scale-[1.02]">
@@ -72,7 +81,7 @@ export const ComputerNode = ({
       {/* Texto de estado flotante en la posición especificada */}
       {statusText && status !== "idle" && (
         <div className={`${getPositionClasses()} ${getStatusColor()}`}>
-          {statusText}
+          <StatusText text={statusText} />
         </div>
       )}
 

@@ -13,21 +13,21 @@ export class DirectCache extends Cache<DirectCacheStep> {
 
     this.addStep({
       id: "decode-address",
-      info: `Decodificación completada | Tag: ${tag} | Línea: ${line} | Palabra: ${word}`,
+      info: `🔍 DECODIFICACIÓN\nTag: ${tag}\nLínea: ${line}\nPalabra: ${word}`,
       value: { tag, line, word },
     });
 
     const entry = this.lines[line];
     this.addStep({
       id: "verify-line",
-      info: `Acceso a línea ${line} - Verificación de contenido`,
+      info: `📊 VERIFICACIÓN LÍNEA\nAccediendo a línea: ${line}\nBuscando bloque almacenado`,
       value: line,
     });
 
     if (entry) {
       this.addStep({
         id: "verify-tag",
-        info: "Validación de etiqueta | Comparación tag almacenado vs solicitado",
+        info: `🏷️ VALIDACIÓN TAG\nTag almacenado: ${entry.tag}\nTag solicitado: ${tag}`,
       });
       if (entry.tag === tag) {
         // ÉXITO
@@ -35,7 +35,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
         this.output = entry.block.substring(index, index + 2);
         this.addStep({
           id: "cache-hit",
-          info: `HIT | Bloque recuperado: ${entry.block} | Output: ${this.output}`,
+          info: `✅ CACHE HIT\nBloque: ${entry.block}\nPalabra extraída: ${this.output}\nLínea: ${line}`,
           value: this.output,
         });
 
@@ -43,13 +43,13 @@ export class DirectCache extends Cache<DirectCacheStep> {
       } else {
         this.addStep({
           id: "cache-miss",
-          info: "MISS | Tag no coincide | Bloque inválido",
+          info: `❌ CACHE MISS\nTags no coinciden\nAlmacenado: ${entry.tag} vs Solicitado: ${tag}`,
         });
       }
     } else {
       this.addStep({
         id: "cache-miss",
-        info: "MISS | Línea vacía | Bloque no presente en caché",
+        info: `❌ CACHE MISS\nLínea ${line} vacía\nNo hay bloque almacenado`,
       });
     }
 
@@ -63,7 +63,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
     this.lines[line] = entry;
     this.addStep({
       id: "load-memory",
-      info: `Escritura completada | Línea: ${line} | Bloque: ${entry.block} | Tag: ${entry.tag}`,
+      info: `💾 CARGA EN CACHÉ\nLínea: ${line}\nBloque: ${entry.block}\nTag: ${entry.tag}`,
       value: { line, entry },
     });
   }

@@ -24,13 +24,13 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
     this.addStep({
       id: "decode-address",
-      info: `Decodificación completada | Tag: ${tag} | Conjunto: ${setNumber} | Palabra: ${word}`,
+      info: `🔍 DECODIFICACIÓN\nTag: ${tag}\nConjunto: ${setNumber}\nPalabra: ${word}`,
       value: { tag, setNumber, word },
     });
 
     this.addStep({
       id: "search-set",
-      info: `Búsqueda en conjunto | Target: Set ${setNumber}`,
+      info: `📂 BÚSQUEDA EN CONJUNTO\nTarget: Set ${setNumber}\n4 vías por conjunto`,
       value: setNumber,
     });
 
@@ -46,20 +46,20 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
         foundLine = i;
         this.addStep({
           id: "check-way",
-          info: `Vía ${i} | MATCH | Tag coincidente en conjunto ${setNumber}`,
+          info: `✅ VÍA ${i} | MATCH\nTag coincidente: ${tag}\nConjunto: ${setNumber}`,
           value: { way: i, set: setNumber, match: true },
         });
         break;
       } else if (entry) {
         this.addStep({
           id: "check-way",
-          info: `Vía ${i} | NO MATCH | Tag actual: ${entry.tag}`,
+          info: `❌ VÍA ${i} | NO MATCH\nTag actual: ${entry.tag}\nTag buscado: ${tag}`,
           value: { way: i, set: setNumber, match: false },
         });
       } else {
         this.addStep({
           id: "check-way",
-          info: `Vía ${i} | EMPTY | Sin datos en conjunto ${setNumber}`,
+          info: `⚪ VÍA ${i} | EMPTY\nSin datos en conjunto\nPosición disponible`,
           value: { way: i, set: setNumber, empty: true },
         });
       }
@@ -70,7 +70,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       this.output = currentSet[foundLine]!.block.substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
-        info: `HIT | Conjunto: ${setNumber} | Vía: ${foundLine} | Output: ${this.output}`,
+        info: `🎯 CACHE HIT\nConjunto: ${setNumber}\nVía: ${foundLine}\nPalabra: ${this.output}`,
         value: this.output,
       });
       return this.output;
@@ -78,7 +78,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
     this.addStep({
       id: "cache-miss",
-      info: "MISS | Tag no encontrado en el conjunto",
+      info: `💥 CACHE MISS\nTag ${tag} no encontrado\nEn conjunto ${setNumber}`,
     });
 
     this.output = null;
@@ -106,7 +106,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       selectedWay = freeWay;
       this.addStep({
         id: "select-way",
-        info: `Asignación a vía libre | Conjunto: ${setNumber} | Vía: ${selectedWay}`,
+        info: `🆓 ASIGNACIÓN VÍA LIBRE\nConjunto: ${setNumber}\nVía: ${selectedWay}\nPosición disponible`,
         value: { way: selectedWay, set: setNumber, free: true },
       });
     } else {
@@ -114,7 +114,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       selectedWay = Math.floor(Math.random() * 4);
       this.addStep({
         id: "select-way",
-        info: `Reemplazo aleatorio | Conjunto: ${setNumber} | Vía: ${selectedWay}`,
+        info: `🔄 REEMPLAZO ALEATORIO\nConjunto: ${setNumber}\nVía: ${selectedWay}\nPolítica: Random`,
         value: { way: selectedWay, set: setNumber, replacement: true },
       });
     }
@@ -122,7 +122,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     currentSet[selectedWay] = entry;
     this.addStep({
       id: "load-memory",
-      info: `Escritura completada | Conjunto: ${setNumber} | Vía: ${selectedWay} | Bloque: ${entry.block} | Tag: ${entry.tag}`,
+      info: `💾 CARGA EN CACHÉ\nConjunto: ${setNumber}\nVía: ${selectedWay}\nBloque: ${entry.block}\nTag: ${entry.tag}`,
       value: { set: setNumber, way: selectedWay, entry },
     });
   }
