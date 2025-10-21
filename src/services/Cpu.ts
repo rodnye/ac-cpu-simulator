@@ -10,9 +10,8 @@ import { hexTo4BitBinary } from "../utils/convert";
 import { AssociativeCache } from "./cache/AssociativeCache";
 
 export type CpuStep = Step &
-  (
-    // FIXME: eliminar estos any
-    | {
+  // FIXME: eliminar estos any
+  (| {
         id: `cache:${string}`;
         value: DirectCacheStep[] | any[];
       }
@@ -164,7 +163,7 @@ export class Cpu extends StepManager<CpuStep> {
     });
 
     if (cachedValue === null) {
-      const block = this.memory.executeGetDirectBlock(tag);
+      const block = this.memory.executeGetAssociativeBlock(tag);
       this.addStep({
         id: "memory:get-block",
         info: "Esperando respuesta de la memoria",
