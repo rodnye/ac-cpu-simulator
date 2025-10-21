@@ -29,20 +29,20 @@ const initialNodes: IComputerNodeData[] = [
       ),
       status: "idle",
       statusText: "",
-      statusPosition: "right",
+      statusPosition: "left",
     },
     type: "component",
   },
   {
     id: "cache",
-    position: { x: 0, y: 0 },
+    position: { x: 260, y: 90 },
     data: {
       Component: () => (
         <img src={cacheImg} className="h-12 filter brightness-110" />
       ),
       status: "idle",
       statusText: "",
-      statusPosition: "left",
+      statusPosition: "right",
     },
     type: "component",
   },
@@ -54,6 +54,17 @@ const initialNodes: IComputerNodeData[] = [
       Component: () => (
         <img src={memoryImg} className="w-24 h-16 filter brightness-110" />
       ),
+      status: "idle",
+      statusText: "",
+      statusPosition: "right",
+    },
+  },
+  {
+    id: "aux",
+    position: { x: 300, y: 250 },
+    type: "component",
+    data: {
+      Component: () => "",
       status: "idle",
       statusText: "",
       statusPosition: "right",
@@ -83,7 +94,7 @@ const initialEdges: Edge[] = [
   {
     id: "cpu-cache",
     source: "cpu",
-    sourceHandle: "left",
+    sourceHandle: "right",
     target: "cache",
     labelShowBg: false,
     type: "step",
