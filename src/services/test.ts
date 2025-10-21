@@ -1,49 +1,18 @@
-// test-associative.ts
-import { CPU } from "./CPU";
+import { Cpu } from "./Cpu";
 
-const cpu = new CPU();
+const cpu = new Cpu();
+const tag = cpu.memory.associativeCalls[0];
+console.log(tag);
 
-//const testTag = cpu.memory.associativeCalls[0];
-//
-//console.log("=== Probando Caché Asociativa ===");
-//cpu.startAssociativeCache(testTag);
-//
-//while (cpu.cacheAssociative.hasNext()) {
-//  cpu.cacheAssociative.next();
-//}
-//
-//console.log("\n=== Segunda ejecución (debería ser cache hit) ===");
-//cpu.startAssociativeCache(testTag);
-//
-//while (cpu.cacheAssociative.hasNext()) {
-//  cpu.cacheAssociative.next();
-//}
+cpu.on("step", (s) => console.log("\n\n----- CPU:", s));
+cpu.directCache.on("step", (s) => console.log("-------- Cache:", s));
+cpu.memory.on("step", (s) => console.log("--------Memory:", s));
 
-//test para cache directa
-//const tag = cpu.memory.directCalls[1];
-//cpu.startDirectCache(tag);
-//
-//while (cpu.cacheDirect.hasNext()) {
-//  cpu.cacheDirect.next();
-//}
-//
-//cpu.startDirectCache(tag);
-//
-//while (cpu.cacheDirect.hasNext()) {
-//  cpu.cacheDirect.next();
-//}
+cpu.executeGetWordAssociative(tag);
+cpu.startTimer(100);
 
-//test para setCache
-const tag = cpu.memory.directCalls[1];
-
-cpu.startSetAssociativeCache(tag);
-
-while (cpu.setAssociativeCache.hasNext()) {
-  cpu.setAssociativeCache.next();
-}
-
-cpu.startSetAssociativeCache(tag);
-
-while (cpu.setAssociativeCache.hasNext()) {
-  cpu.setAssociativeCache.next();
-}
+//cpu.once("timer-stop", () => {
+//  console.log("\n\n\nTest 2\n\n\n");
+//  cpu.executeGetWordDirect(tag);
+//  cpu.startTimer(5000);
+//});
