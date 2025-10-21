@@ -20,7 +20,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
     const entry = this.lines[line];
     this.addStep({
       id: "verify-line",
-      info: `Acceso a línea ${line} | Verificación de contenido`,
+      info: `Acceso a línea ${line} - Verificación de contenido`,
       value: line,
     });
 
