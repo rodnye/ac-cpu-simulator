@@ -1,6 +1,6 @@
 export function hexTo4BitBinary(string: string) {
   let ret: string = "";
-  for (let char of string) {
+  for (const char of string) {
     ret += auxHexTo4BitBinary(char);
   }
   return ret;
@@ -41,4 +41,14 @@ export function auxBinary4BitToHex(fourBits: string): string {
   const hexChar = decimalValue.toString(16).toUpperCase();
 
   return hexChar;
+}
+
+export function twoCharacters() {
+  const str = "01";
+  let result = "";
+  for (let i = 0; i < 2; i++) {
+    result += str.charAt((Math.random() * 10) % 2);
+  }
+
+  return result;
 }
