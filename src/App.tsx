@@ -219,6 +219,10 @@ export default function App() {
             stroke: "#10B981",
             strokeWidth: "4px",
           };
+          cpuMemoryEdge.style = {
+            ...cpuMemoryEdge.style,
+            stroke: "#4B5563",
+          };
           renderEdges();
           break;
         case "load-memory":
@@ -259,6 +263,10 @@ export default function App() {
             stroke: "#10B981",
             strokeWidth: "4px",
           };
+          cpuMemoryEdge.style = {
+            ...cpuMemoryEdge.style,
+            stroke: "#4B5563",
+          };
           renderEdges();
           break;
         case "load-memory":
@@ -297,6 +305,10 @@ export default function App() {
             ...cpuCacheEdge.style,
             stroke: "#10B981",
             strokeWidth: "4px",
+          };
+          cpuMemoryEdge.style = {
+            ...cpuMemoryEdge.style,
+            stroke: "#4B5563",
           };
           renderEdges();
           break;
@@ -338,6 +350,15 @@ export default function App() {
     cpuManager.on("execute", () => {
       setTotalSteps(cpuManager.getSteps().length);
       renderCpu();
+      cpuMemoryEdge.style = {
+        ...cpuMemoryEdge.style,
+        stroke: "#4B5563",
+      };
+      cpuCacheEdge.style = {
+        ...cpuCacheEdge.style,
+        stroke: "#4B5563",
+      };
+      renderEdges();
     });
     cpuManager.on("timer-start", renderCpu);
     cpuManager.on("timer-stop", renderCpu);
