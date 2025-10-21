@@ -21,9 +21,9 @@ export const UserActions = ({
 
   // Direcciones de ejemplo para diferentes tipos de caché
   const addressExamples = {
-    direct: ["000000", "000010", "000020", "000030", "000040"],
-    associative: ["000000", "100000", "200000", "300000", "400000"],
-    "set-associative": ["000000", "000001", "000002", "000003", "000004"],
+    direct: ["000000"],
+    associative: ["000000"],
+    "set-associative": ["000000"],
   };
 
   const handleExecute = async () => {

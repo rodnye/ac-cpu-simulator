@@ -18,14 +18,18 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     this.sets = {};
   }
 
-  public initSet(setN: string) {
-    this.sets[setN] = {};
+  private initSet(setN: string) {
+    if (!this.sets[setN]) {
+      this.sets[setN] = {};
+    }
 
+    // Inicializar exactamente 4 vías para el conjunto
     for (let i = 0; i < this.waysPerSet; i++) {
-      const validBin = randomBinaryChar(8) + setN + randomBinaryChar(2);
-      const validHex = binary4BitToHex(validBin);
+      // Generar un tag único para cada vía
+      const wayTag = randomBinaryChar(8) + setN + randomBinaryChar(2);
+      const wayAddress = binary4BitToHex(wayTag);
 
-      this.sets[setN][randomBinaryChar(24)] = this.memory.getBlock(validHex);
+      this.sets[setN][wayTag] = this.memory.getBlock(wayAddress);
     }
   }
 
@@ -37,6 +41,13 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     const { tag, line, word } = parseHexAddress(hexAddress);
     const setNumber = line;
 
+    if (
+      !this.sets[setNumber] ||
+      Object.keys(this.sets[setNumber]).length != 4
+    ) {
+      this.initSet(setNumber);
+    }
+
     this.addStep({
       id: "decode-address",
       info: `Dirección procesada - Conjunto ${setNumber} seleccionado de 4 posibles, etiqueta ${tag} para identificación, palabra ${word} dentro del bloque`,
@@ -47,16 +58,12 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       info: `Explorando las ${this.waysPerSet} vías del conjunto ${setNumber} en búsqueda de la etiqueta ${tag}`,
     });
 
-    if (!this.sets[setNumber]) {
-      this.initSet(setNumber);
-    }
     const currentSet = this.sets[setNumber];
     let found = false;
     let foundTag = "-1";
     let wayIndex = 0;
 
-    // Búsqueda corregida - iterar sobre todas las vías del conjunto
-    const ways = this.getWaysInSet(setNumber);
+    const ways = Object.keys(currentSet);
     for (let i = 0; i < ways.length; i++) {
       const currentTag = ways[i];
       wayIndex = i + 1;
@@ -108,46 +115,32 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
     const { tag, line, word } = parseHexAddress(directionHex);
 
-    if (!this.sets[line]) {
+    if (!this.sets[line] || Object.keys(this.sets[line]).length === 0) {
       this.initSet(line);
     }
     const currentSet = this.sets[line];
 
-    // POLÍTICA DE REEMPLAZO ALEATORIA CORREGIDA
     const ways = Object.keys(currentSet);
     let selectedWay: string;
 
-    if (ways.length < this.waysPerSet) {
-      // Si hay vías disponibles, usar una nueva
-      selectedWay = tag;
-    } else {
-      // Selección aleatoria entre las vías existentes
-      const randomIndex = Math.floor(Math.random() * ways.length);
-      selectedWay = ways[randomIndex];
-
-      // Eliminar la vía seleccionada para reemplazo
-      delete currentSet[selectedWay];
-    }
+    const randomIndex = Math.floor(Math.random() * ways.length);
+    selectedWay = ways[randomIndex];
 
     this.addStep({
       id: "select-way",
-      info: `Política de reemplazo aleatoria: seleccionada vía ${selectedWay} en conjunto ${line} para almacenar nuevo bloque`,
+      info: `Política de reemplazo aleatoria: seleccionada vía ${selectedWay} (posición ${randomIndex + 1}) en conjunto ${line} para almacenar nuevo bloque`,
     });
 
-    // Cargar el nuevo bloque en la vía seleccionada
+    delete currentSet[selectedWay];
     currentSet[tag] = this.memory.getBlock(directionHex);
+
     this.addStep({
       id: "load-memory",
-      info: `Bloque cargado desde memoria principal a conjunto ${line}, vía ${selectedWay}`,
+      info: `Bloque cargado desde memoria principal a conjunto ${line}, reemplazando vía ${selectedWay} con nueva etiqueta ${tag}`,
     });
-  }
-
-  private getWaysInSet(setNumber: string): string[] {
-    return this.sets[setNumber] ? Object.keys(this.sets[setNumber]) : [];
   }
 }
 
-// Step typing
 export type SetAssociativeCacheStep = Step &
   (
     | { id: "decode-address" }
