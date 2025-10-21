@@ -1,22 +1,20 @@
+import type { Memory } from "../Memory";
 import { StepManager, type Step } from "../StepManager";
-
-export interface CacheEntry {
-  tag: string;
-  block: string;
-}
 
 export type CacheType = "direct" | "set-associative" | "associative";
 
 export abstract class Cache<S extends Step> extends StepManager<S> {
-  lines: (CacheEntry | null)[];
+  memory: Memory;
+  lines: Record<string, string>;
   input: string | null = null;
   output: string | null = null;
 
-  constructor(linesLen: number = 16384) {
+  constructor(memory: Memory, linesLen: number = 16384) {
     super();
-    this.lines = new Array(linesLen).fill(null);
+    this.memory = memory;
+    this.lines = {};
   }
 
   public abstract executeGetLine(direccionHex: string): void;
-  public abstract executeSetLine(line: number, entry: CacheEntry): void;
+  public abstract executeSetLine(direccionHex: string): void;
 }

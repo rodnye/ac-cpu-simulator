@@ -1,10 +1,15 @@
-import { Cache, type CacheEntry } from "./Cache";
-import { Cpu } from "../Cpu";
+import { Cache } from "./Cache";
 import type { Step } from "../StepManager";
+import type { Memory } from "../Memory";
+import {
+  binary4BitToHex,
+  parseHexAssociativeAddress,
+  randomHexChar,
+} from "../../utils/convert";
 
 export class AssociativeCache extends Cache<AssociativeCacheStep> {
-  constructor(linesLen: number = 20) {
-    super(linesLen);
+  constructor(memory: Memory) {
+    super(memory, 20);
   }
 
   public executeGetLine(hexAddress: string) {
@@ -12,7 +17,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     this.setSteps([]);
     this.input = hexAddress;
 
-    const { tag, word } = Cpu.parseHexAssociativeAddress(hexAddress);
+    const { tag, word } = parseHexAssociativeAddress(hexAddress);
     this.addStep({
       id: "decode-address",
       info: `Dirección decodificada: tag=${tag}, palabra=${word}`,
@@ -26,12 +31,12 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     });
 
     let found = false;
-    let foundLine = -1;
+    let foundLine = "-1";
 
     // Buscar en todas las líneas
-    for (let i = 0; i < this.lines.length; i++) {
+    for (let i of Object.values(this.lines)) {
       const entry = this.lines[i];
-      if (entry && entry.tag === tag) {
+      if (entry && i === tag) {
         found = true;
         foundLine = i;
         this.addStep({
@@ -43,7 +48,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
       } else if (entry) {
         this.addStep({
           id: "check-line",
-          info: `Línea ${i}: etiqueta=${entry.tag} - NO coincide`,
+          info: `Línea ${i}: etiqueta=${i} - NO coincide`,
           value: { line: i, match: false },
         });
       } else {
@@ -57,7 +62,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
 
     if (found) {
       const index = parseInt(word, 2) * 2;
-      this.output = this.lines[foundLine]!.block.substring(index, index + 2);
+      this.output = this.lines[foundLine].substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
         info: `Acierto de caché - Etiqueta encontrada en línea ${foundLine}`,
@@ -75,35 +80,31 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     return null;
   }
 
-  public executeSetLine(_: number, entry: CacheEntry): void {
+  public getWord(tag: string, word: string) {
+    const index = parseInt(word, 2) * 2;
+    return this.lines[tag].substring(index, index + 2);
+  }
+
+  public executeSetLine(hexAddress: string): void {
     this.emit("execute", "set-line");
     this.setSteps([]);
 
     // Buscar línea libre o usar reemplazo aleatorio
-    const freeLine = this.lines.findIndex((l) => l === null);
-    let selectedLine: number;
 
-    if (freeLine !== -1) {
-      selectedLine = freeLine;
-      this.addStep({
-        id: "select-line",
-        info: `Línea ${selectedLine} está libre - se usará para cargar el bloque`,
-        value: { line: selectedLine, free: true },
-      });
-    } else {
-      selectedLine = Math.floor(Math.random() * this.lines.length);
-      this.addStep({
-        id: "select-line",
-        info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${selectedLine}`,
-        value: { line: selectedLine, replacement: true },
-      });
-    }
+    let { tag, word } = parseHexAssociativeAddress(hexAddress);
+    const freeLine = tag;
 
-    this.lines[selectedLine] = entry;
+    this.addStep({
+      id: "select-line",
+      info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${freeLine}`,
+      value: { line: freeLine, replacement: true },
+    });
+
+    this.lines[freeLine] = this.memory.getBlock(hexAddress);
     this.addStep({
       id: "load-memory",
-      info: `Bloque cargado en línea ${selectedLine}`,
-      value: { line: selectedLine, entry },
+      info: `Bloque cargado en línea ${freeLine}`,
+      value: { line: freeLine, entry: this.lines[freeLine] },
     });
   }
 }
@@ -121,7 +122,7 @@ export type AssociativeCacheStep = Step &
       }
     | {
         id: "check-line";
-        value: { line: number; match?: boolean; empty?: boolean };
+        value: { line: string; match?: boolean; empty?: boolean };
       }
     | {
         id: "cache-hit";
@@ -132,10 +133,10 @@ export type AssociativeCacheStep = Step &
       }
     | {
         id: "select-line";
-        value: { line: number; free?: boolean; replacement?: boolean };
+        value: { line: string; free?: boolean; replacement?: boolean };
       }
     | {
         id: "load-memory";
-        value: { line: number; entry: CacheEntry };
+        value: { line: string; entry: string };
       }
   );

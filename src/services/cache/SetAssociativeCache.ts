@@ -1,19 +1,14 @@
-import { Cache, type CacheEntry } from "./Cache";
-import { Cpu } from "../Cpu";
+import { Cache } from "./Cache";
+import { parseHexAddress } from "../../utils/convert";
 import type { Step } from "../StepManager";
+import type { Memory } from "../Memory";
 
 export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
-  public sets: Record<number, (CacheEntry | null)[]>;
+  public sets: Record<string, Record<string, string>>;
 
-  constructor(linesLen: number = 5) {
-    super(linesLen);
-    this.sets = {
-      0: Array(4).fill(null),
-      1: Array(4).fill(null),
-      2: Array(4).fill(null),
-      3: Array(4).fill(null),
-      4: Array(4).fill(null),
-    };
+  constructor(memory: Memory) {
+    super(memory);
+    this.sets = {};
   }
 
   public executeGetLine(hexAddress: string) {
@@ -21,8 +16,8 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     this.setSteps([]);
     this.input = hexAddress;
 
-    const { tag, line, word } = Cpu.parseHexAddress(hexAddress);
-    const setNumber = line % 5; // 5 sets of 4 lines each
+    const { tag, line, word } = parseHexAddress(hexAddress);
+    const setNumber = line;
 
     this.addStep({
       id: "decode-address",
@@ -38,38 +33,37 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
     const currentSet = this.sets[setNumber];
     let found = false;
-    let foundLine = -1;
+    let foundLine = "-1";
 
     // Search in set ways
-    for (let i = 0; i < 4; i++) {
-      const entry = currentSet[i];
-      if (entry && entry.tag === tag) {
+    for (let value of Object.values(currentSet)) {
+      if (currentSet[value] && value === tag) {
         found = true;
-        foundLine = i;
+        foundLine = value;
         this.addStep({
           id: "check-way",
-          info: `Línea ${i} del conjunto ${setNumber}: etiqueta coincide - ACIERTO`,
-          value: { way: i, set: setNumber, match: true },
+          info: `Línea ${value} del conjunto ${setNumber}: etiqueta coincide - ACIERTO`,
+          value: { way: value, set: setNumber, match: true },
         });
         break;
-      } else if (entry) {
+      } else if (value) {
         this.addStep({
           id: "check-way",
-          info: `Línea ${i} del conjunto ${setNumber}: etiqueta=${entry.tag} - NO coincide`,
-          value: { way: i, set: setNumber, match: false },
+          info: `Línea ${value} del conjunto ${setNumber}: etiqueta=${tag} - NO coincide`,
+          value: { way: value, set: setNumber, match: false },
         });
       } else {
         this.addStep({
           id: "check-way",
-          info: `Línea ${i} del conjunto ${setNumber}: vacía`,
-          value: { way: i, set: setNumber, empty: true },
+          info: `Línea ${value} del conjunto ${setNumber}: vacía`,
+          value: { way: value, set: setNumber, empty: true },
         });
       }
     }
 
     if (found) {
       const index = parseInt(word, 2) * 2;
-      this.output = currentSet[foundLine]!.block.substring(index, index + 2);
+      this.output = currentSet[foundLine].substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
         info: `Acierto de caché - Etiqueta encontrada en conjunto ${setNumber}, línea ${foundLine}`,
@@ -87,45 +81,51 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     return null;
   }
 
-  public executeSetLine(line: number, entry: CacheEntry): void {
+  public getWord(direccionHex: string) {
+    const { line, tag, word } = parseHexAddress(direccionHex);
+    const index = parseInt(word, 2) * 2;
+    return this.sets[line][tag].substring(index, index + 2);
+  }
+
+  public executeSetLine(directionHex: string): void {
     this.emit("execute", "set-line");
     this.setSteps([]);
 
-    const setNumber = line % 5;
-    const currentSet = this.sets[setNumber];
+    const { tag, line, word } = parseHexAddress(directionHex);
+    const currentSet = this.sets[line];
 
     // Find free way or use replacement policy
-    let freeWay = -1;
-    for (let i = 0; i < 4; i++) {
+    let freeWay = "-1";
+    for (let i of Object.values(currentSet)) {
       if (currentSet[i] === null) {
         freeWay = i;
         break;
       }
     }
 
-    let selectedWay: number;
-    if (freeWay !== -1) {
+    let selectedWay: string;
+    if (freeWay !== "-1") {
       selectedWay = freeWay;
       this.addStep({
         id: "select-way",
         info: `Vía ${selectedWay} está libre - se usará para cargar el bloque`,
-        value: { way: selectedWay, set: setNumber, free: true },
+        value: { way: selectedWay, set: line, free: true },
       });
     } else {
       // Random replacement policy within the set
-      selectedWay = Math.floor(Math.random() * 8) % 4;
+      selectedWay = Object.values(currentSet)[Math.random() * 4];
       this.addStep({
         id: "select-way",
-        info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${selectedWay} del conjunto ${setNumber}`,
-        value: { way: selectedWay, set: setNumber, replacement: true },
+        info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${selectedWay} del conjunto ${line}`,
+        value: { way: selectedWay, set: line, replacement: true },
       });
     }
 
-    currentSet[selectedWay] = entry;
+    currentSet[selectedWay] = this.memory.getBlock(directionHex);
     this.addStep({
       id: "load-memory",
-      info: `Bloque cargado en conjunto ${setNumber}, línea ${selectedWay}`,
-      value: { set: setNumber, way: selectedWay, entry },
+      info: `Bloque cargado en conjunto ${line}, línea ${selectedWay}`,
+      value: { set: line, way: selectedWay, block: currentSet[selectedWay] },
     });
   }
 }
@@ -137,19 +137,19 @@ export type SetAssociativeCacheStep = Omit<Step, "value"> &
         id: "decode-address";
         value: {
           tag: string;
-          setNumber: number;
+          setNumber: string;
           word: string;
         };
       }
     | {
         id: "search-set";
-        value: number;
+        value: string;
       }
     | {
         id: "check-way";
         value: {
-          way: number;
-          set: number;
+          way: string;
+          set: string;
           match?: boolean;
           empty?: boolean;
         };
@@ -164,14 +164,14 @@ export type SetAssociativeCacheStep = Omit<Step, "value"> &
     | {
         id: "select-way";
         value: {
-          way: number;
-          set: number;
+          way: string;
+          set: string;
           free?: boolean;
           replacement?: boolean;
         };
       }
     | {
         id: "load-memory";
-        value: { set: number; way: number; entry: CacheEntry };
+        value: { set: string; way: string; block: string };
       }
   );
