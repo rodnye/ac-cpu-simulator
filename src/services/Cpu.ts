@@ -201,7 +201,7 @@ export class Cpu extends StepManager<CpuStep> {
     const bin = hexTo4BitBinary(direccionHex);
     return {
       tag: direccionHex.substring(0, 2),
-      line: parseInt(bin.substring(8, 22)) % 20,
+      line: parseInt(bin.substring(8, 22), 2),
       word: bin.substring(22, 24),
     };
   }
