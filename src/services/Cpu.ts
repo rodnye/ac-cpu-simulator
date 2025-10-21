@@ -6,11 +6,7 @@ import {
 } from "./cache/SetAssociativeCache";
 import { StepManager, StepNextError, type Step } from "./StepManager";
 import { Memory, type MemoryStep } from "./Memory";
-import {
-  hexTo4BitBinary,
-  parseHexAddress,
-  parseHexAssociativeAddress,
-} from "../utils/convert";
+import { parseHexAddress, parseHexAssociativeAddress } from "../utils/convert";
 import { AssociativeCache } from "./cache/AssociativeCache";
 
 export type CpuStep = Step &
@@ -170,8 +166,7 @@ export class Cpu extends StepManager<CpuStep> {
         value: this.memory.getSteps(),
       });
 
-      // Selección de línea y carga del bloque
-      this.associativeCache.executeSetLine(direccionHex); // línea se ignora internamente
+      this.associativeCache.executeSetLine(direccionHex);
       this.addStep({
         id: "cache:set-line",
         info: "Cargando bloque en la caché totalmente asociativa",

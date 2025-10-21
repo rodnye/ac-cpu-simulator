@@ -31,19 +31,21 @@ export class DirectCache extends Cache<DirectCacheStep> {
       value: { tag, line, word, bin },
     });
 
-    const entry = this.lines[line];
+    const binStr = hexTo4BitBinary(hexAddress);
+    const realTag = binStr.substring(0, 8);
+
     this.addStep({
       id: "verify-line",
       info: `Buscando en la línea ${line}`,
       value: line,
     });
 
-    if (entry) {
+    if (realTag) {
       this.addStep({
         id: "verify-tag",
         info: "Línea encontrada, verificando etiqueta",
       });
-      if (entry === tag) {
+      if (realTag === tag) {
         // ÉXITO
         const block = this.memory.getBlock(hexAddress);
         const index = parseInt(word, 2) * 2;

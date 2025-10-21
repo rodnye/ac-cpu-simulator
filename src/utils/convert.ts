@@ -102,7 +102,7 @@ export function parseHexAddress(direccionHex: string): {
   const bin = hexTo4BitBinary(direccionHex);
   return {
     bin,
-    tag: bin.substring(0, 2),
+    tag: bin.substring(0, 8),
     line: bin.substring(8, 22),
     word: bin.substring(22, 24),
   };
