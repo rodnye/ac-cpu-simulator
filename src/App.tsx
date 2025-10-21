@@ -23,35 +23,41 @@ import type { AssociativeCacheStep } from "./services/cache/AssociativeCache.ts"
 const initialNodes: IComputerNodeData[] = [
   {
     id: "cpu",
-    position: { x: 7, y: 100 },
+    position: { x: 100, y: 7 },
     data: {
-      Component: () => <img src={cpuImg} className="w-16" />,
+      Component: () => (
+        <img src={cpuImg} className="w-24 filter brightness-110" />
+      ),
       status: "idle",
       statusText: "",
-      statusPosition: "left",
+      statusPosition: "top",
     },
     type: "component",
   },
   {
     id: "cache",
-    position: { x: 0, y: 0 },
+    position: { x: 260, y: -70 },
     data: {
-      Component: () => <img src={cacheImg} className="w-16" />,
+      Component: () => (
+        <img src={cacheImg} className="h-12 filter brightness-110" />
+      ),
       status: "idle",
       statusText: "",
-      statusPosition: "left",
+      statusPosition: "right",
     },
     type: "component",
   },
   {
     id: "memory",
-    position: { x: 250, y: 100 },
+    position: { x: 500, y: 23 },
     type: "component",
     data: {
-      Component: () => <img src={memoryImg} className="w-24" />,
+      Component: () => (
+        <img src={memoryImg} className="w-24 h-16 filter brightness-110" />
+      ),
       status: "idle",
       statusText: "",
-      statusPosition: "top",
+      statusPosition: "bottom",
     },
   },
 ] as const;
@@ -60,10 +66,11 @@ const initialEdges: Edge[] = [
   {
     id: "cpu-cache",
     source: "cpu",
-    sourceHandle: "top",
+    sourceHandle: "right",
     target: "cache",
     labelShowBg: false,
-    style: { stroke: "#666", strokeWidth: "3px" },
+    type: "step",
+    style: { stroke: "#4B5563", strokeWidth: "3px" },
   },
   {
     id: "cpu-memory",
@@ -71,11 +78,11 @@ const initialEdges: Edge[] = [
     sourceHandle: "right",
     target: "memory",
     targetHandle: "left",
+    type: "step",
     labelShowBg: false,
-    style: { stroke: "#666", strokeWidth: "3px" },
+    style: { stroke: "#4B5563", strokeWidth: "3px" },
   },
 ] as const;
-
 const cpuManager = new Cpu();
 
 export default function App() {
