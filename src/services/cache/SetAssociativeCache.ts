@@ -6,15 +6,12 @@ import type { Step } from "../StepManager";
 export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
   public sets: Record<number, (CacheEntry | null)[]>;
 
-  constructor(linesLen: number = 5) {
-    super(linesLen);
-    this.sets = {
-      0: Array(4).fill(null),
-      1: Array(4).fill(null),
-      2: Array(4).fill(null),
-      3: Array(4).fill(null),
-      4: Array(4).fill(null),
-    };
+  constructor() {
+    super();
+    this.sets = {};
+    for (let i = 0; i < 16384; i++) {
+      this.sets[i] = Array(4).fill(null);
+    }
   }
 
   public executeGetLine(hexAddress: string) {
@@ -23,7 +20,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     this.input = hexAddress;
 
     const { tag, line, word } = Cpu.parseHexAddress(hexAddress);
-    const setNumber = line % 5; // 5 sets of 4 lines each
+    const setNumber = line % 16384;
 
     this.addStep({
       id: "decode-address",
@@ -92,7 +89,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     this.emit("execute", "set-line");
     this.setSteps([]);
 
-    const setNumber = line % 5;
+    const setNumber = line % 16384;
     const currentSet = this.sets[setNumber];
 
     // Find free way or use replacement policy
@@ -114,7 +111,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       });
     } else {
       // Random replacement policy within the set
-      selectedWay = Math.floor(Math.random() * 8) % 4;
+      selectedWay = Math.floor(Math.random() * 4);
       this.addStep({
         id: "select-way",
         info: `Reemplazo aleatorio | Conjunto: ${setNumber} | Vía: ${selectedWay}`,

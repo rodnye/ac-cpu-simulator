@@ -30,6 +30,7 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     let foundLine = -1;
 
     // Buscar en todas las líneas
+    console.log(this.lines.length);
     for (let i = 0; i < this.lines.length; i++) {
       const entry = this.lines[i];
       if (entry && entry.tag === tag) {

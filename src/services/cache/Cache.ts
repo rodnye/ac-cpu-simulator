@@ -12,7 +12,7 @@ export abstract class Cache<S extends Step> extends StepManager<S> {
   input: string | null = null;
   output: string | null = null;
 
-  constructor(linesLen: number = 20) {
+  constructor(linesLen: number = 16384) {
     super();
     this.lines = new Array(linesLen).fill(null);
   }
