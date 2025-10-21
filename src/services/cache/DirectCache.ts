@@ -1,7 +1,10 @@
-// DirectCache.ts
-import { Cache, type CacheEntry } from "./Cache";
+import { Cache } from "./Cache";
 import type { Step } from "../StepManager";
-import { Cpu } from "../Cpu";
+import {
+  hexTo4BitBinary,
+  parseHexAddress,
+  randomBinaryChar,
+} from "../../utils/convert";
 
 export class DirectCache extends Cache<DirectCacheStep> {
   public executeGetLine(hexAddress: string) {
@@ -9,33 +12,51 @@ export class DirectCache extends Cache<DirectCacheStep> {
     this.setSteps([]);
     this.input = hexAddress;
 
-    const { tag, line, word } = Cpu.parseHexAddress(hexAddress);
+    const { tag, line, word, bin } = parseHexAddress(hexAddress);
+
+    {
+      const binTable: [string, string][] = [];
+      const iterator = bin.matchAll(/\d{4}/g);
+
+      let value;
+      while ((value = iterator.next()?.value?.[0]) !== undefined) {
+        binTable.push([hexAddress.charAt(binTable.length), value]);
+      }
+      this.addStep({
+        id: "decode-address-bin",
+        info: `Convertir a binario de 4 posiciones`,
+        value: binTable,
+      });
+    }
 
     this.addStep({
       id: "decode-address",
-      info: `🔍 DECODIFICACIÓN\nTag: ${tag}\nLínea: ${line}\nPalabra: ${word}`,
-      value: { tag, line, word },
+      info: `Dirección decodificada`,
+      value: { tag, line, word, bin },
     });
 
-    const entry = this.lines[line];
+    const binStr = hexTo4BitBinary(hexAddress);
+    const realTag = binStr.substring(0, 8);
+
     this.addStep({
       id: "verify-line",
-      info: `📊 VERIFICACIÓN LÍNEA\nAccediendo a línea: ${line}\nBuscando bloque almacenado`,
+      info: `Buscando en la línea ${line}`,
       value: line,
     });
 
-    if (entry) {
+    if (realTag) {
       this.addStep({
         id: "verify-tag",
-        info: `🏷️ VALIDACIÓN TAG\nTag almacenado: ${entry.tag}\nTag solicitado: ${tag}`,
+        info: "Línea encontrada, verificando etiqueta",
       });
-      if (entry.tag === tag) {
+      if (realTag === tag) {
         // ÉXITO
+        const block = this.memory.getBlock(hexAddress);
         const index = parseInt(word, 2) * 2;
-        this.output = entry.block.substring(index, index + 2);
+        this.output = block.substring(index, index + 2);
         this.addStep({
           id: "cache-hit",
-          info: `✅ CACHE HIT\nBloque: ${entry.block}\nPalabra extraída: ${this.output}\nLínea: ${line}`,
+          info: `Bloque encontrado: ${block}`,
           value: this.output,
         });
 
@@ -43,13 +64,13 @@ export class DirectCache extends Cache<DirectCacheStep> {
       } else {
         this.addStep({
           id: "cache-miss",
-          info: `❌ CACHE MISS\nTags no coinciden\nAlmacenado: ${entry.tag} vs Solicitado: ${tag}`,
+          info: "Etiqueta no coincide, fallo de caché",
         });
       }
     } else {
       this.addStep({
         id: "cache-miss",
-        info: `❌ CACHE MISS\nLínea ${line} vacía\nNo hay bloque almacenado`,
+        info: "Fallo de caché: no hay bloque en la línea",
       });
     }
 
@@ -57,14 +78,26 @@ export class DirectCache extends Cache<DirectCacheStep> {
     return null;
   }
 
-  public executeSetLine(line: number, entry: CacheEntry): void {
+  public getWord(line: string, word: string) {
+    const index = parseInt(word, 2) * 2;
+    return this.lines[line].substring(index, index + 2);
+  }
+
+  public getCacheData(string: string) {
+    return randomBinaryChar(8) + string + randomBinaryChar(2);
+  }
+
+  public executeSetLine(directionHex: string): void {
+    const { line, tag, word } = parseHexAddress(directionHex);
+    const block = this.memory.getBlock(directionHex);
+
     this.emit("execute", "set-line");
     this.setSteps([]);
-    this.lines[line] = entry;
+    this.lines[line] = block;
     this.addStep({
       id: "load-memory",
-      info: `💾 CARGA EN CACHÉ\nLínea: ${line}\nBloque: ${entry.block}\nTag: ${entry.tag}`,
-      value: { line, entry },
+      info: `Cacheando: \nLínea ${line}\nBloque ${block}`,
+      value: { line, block },
     });
   }
 }
@@ -73,16 +106,21 @@ export class DirectCache extends Cache<DirectCacheStep> {
 export type DirectCacheStep = Omit<Step, "value"> &
   (
     | {
+        id: "decode-address-bin";
+        value: [string, string][];
+      }
+    | {
         id: "decode-address";
         value: {
           tag: string;
-          line: number;
+          line: string;
           word: string;
+          bin: string;
         };
       }
     | {
         id: "verify-line";
-        value: number;
+        value: string;
       }
     | {
         id: "cache-miss";
@@ -96,6 +134,6 @@ export type DirectCacheStep = Omit<Step, "value"> &
       }
     | {
         id: "load-memory";
-        value: { line: number; entry: CacheEntry };
+        value: { line: string; block: string };
       }
   );

@@ -6,7 +6,7 @@ import {
 } from "./cache/SetAssociativeCache";
 import { StepManager, StepNextError, type Step } from "./StepManager";
 import { Memory, type MemoryStep } from "./Memory";
-import { hexTo4BitBinary } from "../utils/convert";
+import { parseHexAddress, parseHexAssociativeAddress } from "../utils/convert";
 import { AssociativeCache } from "./cache/AssociativeCache";
 
 export type CpuStep = Step &
@@ -41,10 +41,10 @@ export class Cpu extends StepManager<CpuStep> {
 
   constructor() {
     super();
-    this.directCache = new DirectCache();
-    this.setAssociativeCache = new SetAssociativeCache();
-    this.associativeCache = new AssociativeCache();
     this.memory = new Memory();
+    this.directCache = new DirectCache(this.memory);
+    this.setAssociativeCache = new SetAssociativeCache(this.memory);
+    this.associativeCache = new AssociativeCache(this.memory);
   }
 
   public next() {
@@ -73,38 +73,37 @@ export class Cpu extends StepManager<CpuStep> {
   }
 
   public executeGetWordDirect(direccionHex: string) {
-    const { tag, line, word } = Cpu.parseHexAddress(direccionHex);
+    const { tag, line, word } = parseHexAddress(direccionHex);
 
     const cachedValue = this.directCache.executeGetLine(direccionHex);
     this.addStep({
       id: "cache:get-cache",
-      info: `Buscando direccion ${direccionHex}`,
+      info: "Esperando respuesta de la caché directa",
       value: this.directCache.getSteps(),
     });
 
     if (cachedValue === null) {
-      const block = this.memory.executeGetDirectBlock(tag);
       this.addStep({
         id: "memory:get-block",
-        info: "Solicitud enviada",
+        info: "Esperando respuesta de la memoria",
         value: this.memory.getSteps(),
       });
 
-      this.directCache.executeSetLine(line, { tag, block });
+      this.directCache.executeSetLine(direccionHex);
       this.addStep({
         id: "cache:set-line",
-        info: "Almacenando bloque en caché directa",
+        info: "Cargando bloque en la caché directa",
         value: this.directCache.getSteps(),
       });
 
-      this.output = this.memory.executeGetDirectWord(tag, word);
+      this.output = this.directCache.getWord(line, word);
     } else {
       this.output = cachedValue;
     }
 
     this.addStep({
       id: "get-word",
-      info: `Palabra recibida: ${this.output}`,
+      info: `Palabra obtenida exitosamente: ${this.output}`,
       value: this.output,
     });
 
@@ -113,38 +112,35 @@ export class Cpu extends StepManager<CpuStep> {
   }
 
   public executeGetWordSetAssociative(direccionHex: string) {
-    const { tag, line, word } = Cpu.parseHexAddress(direccionHex);
-
     const cachedValue = this.setAssociativeCache.executeGetLine(direccionHex);
     this.addStep({
       id: "set-cache:get-cache",
-      info: `Buscando direccion ${direccionHex}`,
+      info: "Esperando respuesta de la caché asociativa por conjuntos",
       value: this.setAssociativeCache.getSteps(),
     });
 
     if (cachedValue === null) {
-      const block = this.memory.executeGetDirectBlock(tag);
       this.addStep({
         id: "memory:get-block",
-        info: "Solicitud enviada",
+        info: "Esperando respuesta de la memoria",
         value: this.memory.getSteps(),
       });
 
-      this.setAssociativeCache.executeSetLine(line, { tag, block });
+      this.setAssociativeCache.executeSetLine(direccionHex);
       this.addStep({
         id: "set-cache:set-line",
-        info: "Almacenando bloque en caché asociativa por conjuntos",
+        info: "Cargando bloque en la caché asociativa por conjuntos",
         value: this.setAssociativeCache.getSteps(),
       });
 
-      this.output = this.memory.executeGetDirectWord(tag, word);
+      this.output = this.setAssociativeCache.getWord(direccionHex);
     } else {
       this.output = cachedValue;
     }
 
     this.addStep({
       id: "get-word",
-      info: `Dato recibido: ${this.output}`,
+      info: "Palabra obtenida exitosamente",
       value: this.output,
     });
 
@@ -153,67 +149,42 @@ export class Cpu extends StepManager<CpuStep> {
   }
 
   public executeGetWordAssociative(direccionHex: string) {
-    const { tag, word } = Cpu.parseHexAssociativeAddress(direccionHex);
+    const { tag, word } = parseHexAssociativeAddress(direccionHex);
 
     const cachedValue = this.associativeCache.executeGetLine(direccionHex);
     this.addStep({
       id: "cache:get-cache",
-      info: `Buscando direccion ${direccionHex}`,
+      info: "Esperando respuesta de la caché totalmente asociativa",
       value: this.associativeCache.getSteps(),
     });
 
     if (cachedValue === null) {
-      const block = this.memory.executeGetAssociativeBlock(tag);
+      const block = this.memory.getBlock(tag);
       this.addStep({
         id: "memory:get-block",
-        info: "Solicitud enviada",
+        info: "Esperando respuesta de la memoria",
         value: this.memory.getSteps(),
       });
 
-      // Selección de línea y carga del bloque
-      this.associativeCache.executeSetLine(0, { tag, block }); // línea se ignora internamente
+      this.associativeCache.executeSetLine(direccionHex);
       this.addStep({
         id: "cache:set-line",
-        info: "Almacenando bloque en caché asociativa",
+        info: "Cargando bloque en la caché totalmente asociativa",
         value: this.associativeCache.getSteps(),
       });
 
-      this.output = this.memory.executeGetAssociativeWord(tag, word);
+      this.output = this.associativeCache.getWord(tag, word);
     } else {
       this.output = cachedValue;
     }
 
     this.addStep({
       id: "get-word",
-      info: `Dato recibido: ${this.output}`,
+      info: "Palabra obtenida exitosamente",
       value: this.output,
     });
 
     this.emit("execute", "get-word");
     return this.output;
-  }
-
-  static parseHexAddress(direccionHex: string): {
-    tag: string;
-    line: number;
-    word: string;
-  } {
-    const bin = hexTo4BitBinary(direccionHex);
-    return {
-      tag: direccionHex.substring(0, 2),
-      line: parseInt(bin.substring(8, 22), 2),
-      word: bin.substring(22, 24),
-    };
-  }
-
-  static parseHexAssociativeAddress(direccionHex: string): {
-    tag: string;
-    word: string;
-  } {
-    const bin = hexTo4BitBinary(direccionHex);
-    return {
-      tag: direccionHex.substring(0, 22),
-      word: bin.substring(22, 24),
-    };
   }
 }

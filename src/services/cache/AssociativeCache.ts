@@ -1,11 +1,14 @@
-// AssociativeCache.ts
-import { Cache, type CacheEntry } from "./Cache";
-import { Cpu } from "../Cpu";
+import { Cache } from "./Cache";
 import type { Step } from "../StepManager";
+import type { Memory } from "../Memory";
+import {
+  parseHexAssociativeAddress,
+  randomBinaryChar,
+} from "../../utils/convert";
 
 export class AssociativeCache extends Cache<AssociativeCacheStep> {
-  constructor(linesLen: number = 20) {
-    super(linesLen);
+  constructor(memory: Memory) {
+    super(memory, 20);
   }
 
   public executeGetLine(hexAddress: string) {
@@ -13,56 +16,62 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     this.setSteps([]);
     this.input = hexAddress;
 
-    const { tag, word } = Cpu.parseHexAssociativeAddress(hexAddress);
+    const { tag, word } = parseHexAssociativeAddress(hexAddress);
     this.addStep({
       id: "decode-address",
-      info: `🔍 DECODIFICACIÓN\nTag+Palabra: ${tag}\nPalabra: ${word}`,
+      info: `Dirección decodificada: tag=${tag}, palabra=${word}`,
       value: { tag, word },
     });
 
     this.addStep({
       id: "search-tag",
-      info: `🔎 BÚSQUEDA ASOCIATIVA\nTarget tag: ${tag}\n${this.lines.length} líneas disponibles`,
+      info: `Buscando etiqueta ${tag} en todas las líneas de caché`,
       value: tag,
     });
 
     let found = false;
-    let foundLine = -1;
+    let foundLine = "-1";
+    let aux = 20;
 
     // Buscar en todas las líneas
-    console.log(this.lines.length);
-    for (let i = 0; i < this.lines.length; i++) {
+    for (let i of Object.keys(this.lines)) {
+      aux--;
       const entry = this.lines[i];
-      if (entry && entry.tag === tag) {
+      if (i === tag) {
         found = true;
         foundLine = i;
         this.addStep({
           id: "check-line",
-          info: `✅ LÍNEA ${i} | MATCH\nTag coincidente: ${tag}\nBloque encontrado`,
-          value: { line: i, match: true },
+          info: `Línea ${20 - aux}: etiqueta coincide - ACIERTO`,
+          value: { line: 20 - aux, match: true },
         });
         break;
       } else if (entry) {
         this.addStep({
           id: "check-line",
-          info: `❌ LÍNEA ${i} | NO MATCH\nTag actual: ${entry.tag}\nTag buscado: ${tag}`,
-          value: { line: i, match: false },
-        });
-      } else {
-        this.addStep({
-          id: "check-line",
-          info: `⚪ LÍNEA ${i} | EMPTY\nSin datos almacenados\nPosición disponible`,
-          value: { line: i, empty: true },
+          info: `Línea ${20 - aux}: etiqueta=${i} - NO coincide`,
+          value: { line: 20 - aux, match: false },
         });
       }
     }
 
+    while (aux && !found) {
+      const linea = 0;
+      const tag = randomBinaryChar(8);
+      this.addStep({
+        id: "check-line",
+        info: `Línea ${20 - aux}: etiqueta=${tag} - NO coincide`,
+        value: { line: linea, match: false },
+      });
+      aux--;
+    }
+
     if (found) {
       const index = parseInt(word, 2) * 2;
-      this.output = this.lines[foundLine]!.block.substring(index, index + 2);
+      this.output = this.lines[foundLine].substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
-        info: `🎯 CACHE HIT\nLínea: ${foundLine}\nPalabra: ${this.output}\nTag: ${tag}`,
+        info: `Acierto de caché - Etiqueta encontrada en línea ${foundLine}`,
         value: this.output,
       });
       return this.output;
@@ -70,44 +79,38 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
 
     this.addStep({
       id: "cache-miss",
-      info: `💥 CACHE MISS\nTag ${tag} no encontrado\nEn ${this.lines.length} líneas`,
+      info: "Etiqueta no encontrada - FALLO de caché",
     });
 
     this.output = null;
     return null;
   }
 
-  public executeSetLine(_: number, entry: CacheEntry): void {
+  public getWord(tag: string, word: string) {
+    const index = parseInt(word, 2) * 2;
+    return this.lines[tag].substring(index, index + 2);
+  }
+
+  public executeSetLine(hexAddress: string): void {
     this.emit("execute", "set-line");
     this.setSteps([]);
 
-    // Buscar línea libre o usar reemplazo aleatorio
-    const freeLine = this.lines.findIndex((l) => l === null);
-    let selectedLine: number;
+    let { tag, word } = parseHexAssociativeAddress(hexAddress);
+    const freeLine = tag;
+    console.log(tag);
+    this.lines[freeLine] = this.memory.getBlock(hexAddress);
 
-    if (freeLine !== -1) {
-      selectedLine = freeLine;
-      this.addStep({
-        id: "select-line",
-        info: `🆓 ASIGNACIÓN LÍNEA LIBRE\nLínea: ${selectedLine}\nPosición disponible`,
-        value: { line: selectedLine, free: true },
-      });
-    } else {
-      selectedLine = Math.floor(Math.random() * this.lines.length);
-      this.addStep({
-        id: "select-line",
-        info: `🔄 REEMPLAZO ALEATORIO\nLínea: ${selectedLine}\nPolítica: Random`,
-        value: { line: selectedLine, replacement: true },
-      });
-    }
+    this.addStep({
+      id: "select-line",
+      info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${freeLine}`,
+      value: { line: freeLine, replacement: true },
+    });
 
-    this.lines[selectedLine] = entry;
-    console.log("seteado");
-    console.log(entry);
+    this.lines[freeLine] = this.memory.getBlock(hexAddress);
     this.addStep({
       id: "load-memory",
-      info: `💾 CARGA EN CACHÉ\nLínea: ${selectedLine}\nBloque: ${entry.block}\nTag: ${entry.tag}`,
-      value: { line: selectedLine, entry },
+      info: `Bloque cargado en línea ${freeLine}`,
+      value: { line: freeLine, entry: this.lines[freeLine] },
     });
   }
 }
@@ -136,10 +139,10 @@ export type AssociativeCacheStep = Step &
       }
     | {
         id: "select-line";
-        value: { line: number; free?: boolean; replacement?: boolean };
+        value: { line: string; free?: boolean; replacement?: boolean };
       }
     | {
         id: "load-memory";
-        value: { line: number; entry: CacheEntry };
+        value: { line: string; entry: string };
       }
   );

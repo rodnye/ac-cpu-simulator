@@ -22,14 +22,14 @@ export abstract class StepManager<S extends Step = Step> extends EventEmitter<{
   step: (step: S) => void;
   "timer-stop": () => void;
   "timer-start": () => void;
-  "execute": (id: string) => void;
+  execute: (id: string) => void;
 }> {
   private timer: TimerId | undefined;
 
   // bus de entrada, bus de salida
   public abstract input: unknown;
   public abstract output: unknown;
-  
+
   // steps
   protected steps: S[] = [];
   public getSteps() {
@@ -41,7 +41,7 @@ export abstract class StepManager<S extends Step = Step> extends EventEmitter<{
   public setSteps(steps: S[]) {
     this.steps = steps;
   }
-  
+
   // iterator
   public next() {
     if (!this.hasNext()) throw new StepNextError();

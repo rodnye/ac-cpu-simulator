@@ -1,8 +1,7 @@
 import { Cpu } from "./Cpu";
 
 const cpu = new Cpu();
-const tag = cpu.memory.associativeCalls[0];
-console.log(tag);
+const tag = "ABC123";
 
 cpu.on("step", (s) => console.log("\n\n----- CPU:", s));
 cpu.directCache.on("step", (s) => console.log("-------- Cache:", s));
