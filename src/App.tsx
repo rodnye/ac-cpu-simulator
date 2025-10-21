@@ -256,6 +256,7 @@ export default function App() {
           break;
         default:
           cacheNode.data.status = "active";
+          cpuMemoryEdge.animated = true;
           break;
       }
       cacheNode.data.statusText = step.info;
