@@ -1,5 +1,11 @@
 import { Cache } from "./Cache";
-import { parseHexAddress } from "../../utils/convert";
+import {
+  hexTo4BitBinary,
+  parseHexAddress,
+  randomBinaryChar,
+  randomHexChar,
+  randomInt,
+} from "../../utils/convert";
 import type { Step } from "../StepManager";
 import type { Memory } from "../Memory";
 
@@ -9,6 +15,18 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
   constructor(memory: Memory) {
     super(memory);
     this.sets = {};
+  }
+
+  public initSet(setN: string) {
+    const setNumber = setN;
+
+    this.sets[setNumber] = {};
+
+    for (let i = 0; i < 4; i++) {
+      this.sets[setNumber][randomBinaryChar(24)] = this.memory.getBlock(
+        randomHexChar(6),
+      );
+    }
   }
 
   public executeGetLine(hexAddress: string) {
@@ -31,13 +49,16 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       value: setNumber,
     });
 
+    if (!this.sets[setNumber]) {
+      this.initSet(setNumber);
+    }
     const currentSet = this.sets[setNumber];
     let found = false;
     let foundLine = "-1";
 
     // Search in set ways
-    for (let value of Object.values(currentSet)) {
-      if (currentSet[value] && value === tag) {
+    for (let value of Object.keys(currentSet)) {
+      if (value === tag) {
         found = true;
         foundLine = value;
         this.addStep({
@@ -94,32 +115,13 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     const { tag, line, word } = parseHexAddress(directionHex);
     const currentSet = this.sets[line];
 
-    // Find free way or use replacement policy
-    let freeWay = "-1";
-    for (let i of Object.values(currentSet)) {
-      if (currentSet[i] === null) {
-        freeWay = i;
-        break;
-      }
-    }
-
-    let selectedWay: string;
-    if (freeWay !== "-1") {
-      selectedWay = freeWay;
-      this.addStep({
-        id: "select-way",
-        info: `Vía ${selectedWay} está libre - se usará para cargar el bloque`,
-        value: { way: selectedWay, set: line, free: true },
-      });
-    } else {
-      // Random replacement policy within the set
-      selectedWay = Object.values(currentSet)[Math.random() * 4];
-      this.addStep({
-        id: "select-way",
-        info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${selectedWay} del conjunto ${line}`,
-        value: { way: selectedWay, set: line, replacement: true },
-      });
-    }
+    this.sets[line][tag] = this.memory.getBlock(directionHex);
+    const selectedWay = Object.values(currentSet)[randomInt(0, 3)];
+    this.addStep({
+      id: "select-way",
+      info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${selectedWay} del conjunto ${line}`,
+      value: { way: selectedWay, set: line, replacement: true },
+    });
 
     currentSet[selectedWay] = this.memory.getBlock(directionHex);
     this.addStep({

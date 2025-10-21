@@ -2,9 +2,8 @@ import { Cache } from "./Cache";
 import type { Step } from "../StepManager";
 import type { Memory } from "../Memory";
 import {
-  binary4BitToHex,
   parseHexAssociativeAddress,
-  randomHexChar,
+  randomBinaryChar,
 } from "../../utils/convert";
 
 export class AssociativeCache extends Cache<AssociativeCacheStep> {
@@ -32,32 +31,39 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
 
     let found = false;
     let foundLine = "-1";
+    let aux = 20;
 
     // Buscar en todas las líneas
-    for (let i of Object.values(this.lines)) {
+    for (let i of Object.keys(this.lines)) {
+      aux--;
       const entry = this.lines[i];
-      if (entry && i === tag) {
+      if (i === tag) {
         found = true;
         foundLine = i;
         this.addStep({
           id: "check-line",
-          info: `Línea ${i}: etiqueta coincide - ACIERTO`,
-          value: { line: i, match: true },
+          info: `Línea ${20 - aux}: etiqueta coincide - ACIERTO`,
+          value: { line: 20 - aux, match: true },
         });
         break;
       } else if (entry) {
         this.addStep({
           id: "check-line",
-          info: `Línea ${i}: etiqueta=${i} - NO coincide`,
-          value: { line: i, match: false },
-        });
-      } else {
-        this.addStep({
-          id: "check-line",
-          info: `Línea ${i}: vacía`,
-          value: { line: i, empty: true },
+          info: `Línea ${20 - aux}: etiqueta=${i} - NO coincide`,
+          value: { line: 20 - aux, match: false },
         });
       }
+    }
+
+    while (aux && !found) {
+      const linea = 0;
+      const tag = randomBinaryChar(8);
+      this.addStep({
+        id: "check-line",
+        info: `Línea ${20 - aux}: etiqueta=${tag} - NO coincide`,
+        value: { line: linea, match: false },
+      });
+      aux--;
     }
 
     if (found) {
@@ -89,10 +95,10 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     this.emit("execute", "set-line");
     this.setSteps([]);
 
-    // Buscar línea libre o usar reemplazo aleatorio
-
     let { tag, word } = parseHexAssociativeAddress(hexAddress);
     const freeLine = tag;
+    console.log(tag);
+    this.lines[freeLine] = this.memory.getBlock(hexAddress);
 
     this.addStep({
       id: "select-line",
@@ -122,7 +128,7 @@ export type AssociativeCacheStep = Step &
       }
     | {
         id: "check-line";
-        value: { line: string; match?: boolean; empty?: boolean };
+        value: { line: number; match?: boolean; empty?: boolean };
       }
     | {
         id: "cache-hit";

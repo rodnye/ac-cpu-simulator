@@ -7,9 +7,9 @@ cpu.on("step", (s) => console.log("\n\n----- CPU:", s));
 cpu.directCache.on("step", (s) => console.log("-------- Cache:", s));
 cpu.memory.on("step", (s) => console.log("--------Memory:", s));
 
-cpu.executeGetWordDirect(tag);
+cpu.executeGetWordAssociative(tag);
 cpu.startTimer(100);
-cpu.executeGetWordDirect(tag);
+cpu.executeGetWordAssociative(tag);
 
 //cpu.once("timer-stop", () => {
 //  console.log("\n\n\nTest 2\n\n\n");

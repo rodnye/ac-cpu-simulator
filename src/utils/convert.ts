@@ -36,7 +36,7 @@ const reverseConvertionHash: Record<string, string> = {
   "1111": "F",
 };
 
-export function hexTo4BitBinary(string: string) {
+export function hexTo4BitBinary(string: string): string {
   let ret: string = "";
   for (const char of string) {
     ret += convertionHash[char];
@@ -76,7 +76,7 @@ export function randomBinaryChar(cantidad: number) {
   const str = "01";
   let result = "";
   for (let i = 0; i < cantidad; i++) {
-    result += str.charAt((Math.random() * 10) % 2);
+    result += str.charAt(randomInt(0, 2));
   }
 
   return result;
@@ -87,7 +87,7 @@ export function randomHexChar(cantidad: number) {
   let resultado = "";
 
   for (let i = 0; i < cantidad; i++) {
-    resultado += string[(Math.random() * 100) % 16];
+    resultado += string[randomInt(0, 15)];
   }
 
   return resultado;
@@ -117,4 +117,8 @@ export function parseHexAssociativeAddress(direccionHex: string): {
     tag: bin.substring(0, 22),
     word: bin.substring(22, 24),
   };
+}
+
+export function randomInt(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }

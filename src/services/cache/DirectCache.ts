@@ -1,6 +1,10 @@
 import { Cache } from "./Cache";
 import type { Step } from "../StepManager";
-import { hexTo4BitBinary, parseHexAddress } from "../../utils/convert";
+import {
+  hexTo4BitBinary,
+  parseHexAddress,
+  randomBinaryChar,
+} from "../../utils/convert";
 
 export class DirectCache extends Cache<DirectCacheStep> {
   public executeGetLine(hexAddress: string) {
@@ -77,6 +81,10 @@ export class DirectCache extends Cache<DirectCacheStep> {
   public getWord(line: string, word: string) {
     const index = parseInt(word, 2) * 2;
     return this.lines[line].substring(index, index + 2);
+  }
+
+  public getCacheData(string: string) {
+    return randomBinaryChar(8) + string + randomBinaryChar(2);
   }
 
   public executeSetLine(directionHex: string): void {
