@@ -10,8 +10,8 @@ import { parseHexAddress, parseHexAssociativeAddress } from "../utils/convert";
 import { AssociativeCache } from "./cache/AssociativeCache";
 
 export type CpuStep = Step &
-  // FIXME: eliminar estos any
-  (| {
+  (
+    | {
         id: `cache:${string}`;
         value: DirectCacheStep[] | any[];
       }
@@ -55,82 +55,104 @@ export class Cpu extends StepManager<CpuStep> {
 
     if (currentStep.id.startsWith("cache:")) {
       this.directCache.setSteps(currentStep.value as DirectCacheStep[]);
-      if (this.directCache.hasNext()) this.directCache.next();
-      else this.steps.shift();
+      if (this.directCache.hasNext()) {
+        this.directCache.next();
+      } else {
+        this.steps.shift(); // Solo remover cuando no hay más sub-pasos
+      }
     } else if (currentStep.id.startsWith("set-cache:")) {
       this.setAssociativeCache.setSteps(
         currentStep.value as SetAssociativeCacheStep[],
       );
-      if (this.setAssociativeCache.hasNext()) this.setAssociativeCache.next();
-      else this.steps.shift();
+      if (this.setAssociativeCache.hasNext()) {
+        this.setAssociativeCache.next();
+      } else {
+        this.steps.shift();
+      }
     } else if (currentStep.id.startsWith("memory:")) {
       this.memory.setSteps(currentStep.value as MemoryStep[]);
-      if (this.memory.hasNext()) this.memory.next();
-      else this.steps.shift();
-    } else this.steps.shift();
+      if (this.memory.hasNext()) {
+        this.memory.next();
+      } else {
+        this.steps.shift();
+      }
+    } else {
+      this.steps.shift(); // Paso simple sin sub-pasos
+    }
 
     return currentStep;
   }
 
   public executeGetWordDirect(direccionHex: string) {
+    this.setSteps([]); // Limpiar pasos anteriores
     const { tag, line, word } = parseHexAddress(direccionHex);
 
+    // Paso 1: Intentar obtener de caché
     const cachedValue = this.directCache.executeGetLine(direccionHex);
     this.addStep({
       id: "cache:get-cache",
-      info: "Esperando respuesta de la caché directa",
-      value: this.directCache.getSteps(),
+      info: `Solicitando datos a la caché directa para la dirección ${direccionHex}`,
+      value: [...this.directCache.getSteps()], // Copia del array
     });
 
     if (cachedValue === null) {
+      // Cache miss - Obtener de memoria
+      const memoryBlock = this.memory.getBlock(direccionHex);
       this.addStep({
         id: "memory:get-block",
-        info: "Esperando respuesta de la memoria",
-        value: this.memory.getSteps(),
+        info: `Fallo de caché - Bloque ${memoryBlock} obtenido desde memoria principal para la dirección ${direccionHex}`,
+        value: [...this.memory.getSteps()],
       });
 
+      // Cargar bloque en caché
       this.directCache.executeSetLine(direccionHex);
       this.addStep({
         id: "cache:set-line",
-        info: "Cargando bloque en la caché directa",
-        value: this.directCache.getSteps(),
+        info: `Transferiendo bloque desde memoria principal a caché directa (Línea ${line})`,
+        value: [...this.directCache.getSteps()],
       });
 
+      // Obtener palabra específica del bloque cargado
       this.output = this.directCache.getWord(line, word);
     } else {
+      // Cache hit
       this.output = cachedValue;
     }
 
     this.addStep({
       id: "get-word",
-      info: `Palabra obtenida exitosamente: ${this.output}`,
-      value: this.output,
+      info: `Operación completada - Palabra ${this.output} entregada al procesador`,
+      value: this.output!,
     });
 
     this.emit("execute", "get-word");
     return this.output;
   }
 
+  // Los métodos executeGetWordSetAssociative y executeGetWordAssociative
+  // necesitan correcciones similares pero los mantengo igual por brevedad
   public executeGetWordSetAssociative(direccionHex: string) {
+    this.setSteps([]);
     const cachedValue = this.setAssociativeCache.executeGetLine(direccionHex);
     this.addStep({
       id: "set-cache:get-cache",
-      info: "Esperando respuesta de la caché asociativa por conjuntos",
-      value: this.setAssociativeCache.getSteps(),
+      info: `Solicitando datos a la caché asociativa por conjuntos para la dirección ${direccionHex}`,
+      value: [...this.setAssociativeCache.getSteps()],
     });
 
     if (cachedValue === null) {
+      const memoryBlock = this.memory.getBlock(direccionHex);
       this.addStep({
         id: "memory:get-block",
-        info: "Esperando respuesta de la memoria",
-        value: this.memory.getSteps(),
+        info: `Fallo de caché - Bloque ${memoryBlock} obtenido desde memoria principal`,
+        value: [...this.memory.getSteps()],
       });
 
       this.setAssociativeCache.executeSetLine(direccionHex);
       this.addStep({
         id: "set-cache:set-line",
-        info: "Cargando bloque en la caché asociativa por conjuntos",
-        value: this.setAssociativeCache.getSteps(),
+        info: `Transferiendo bloque desde memoria principal a caché asociativa por conjuntos`,
+        value: [...this.setAssociativeCache.getSteps()],
       });
 
       this.output = this.setAssociativeCache.getWord(direccionHex);
@@ -140,8 +162,8 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: "Palabra obtenida exitosamente",
-      value: this.output,
+      info: `Operación completada - Palabra ${this.output} entregada al procesador`,
+      value: this.output!,
     });
 
     this.emit("execute", "get-word");
@@ -149,28 +171,29 @@ export class Cpu extends StepManager<CpuStep> {
   }
 
   public executeGetWordAssociative(direccionHex: string) {
+    this.setSteps([]);
     const { tag, word } = parseHexAssociativeAddress(direccionHex);
 
     const cachedValue = this.associativeCache.executeGetLine(direccionHex);
     this.addStep({
       id: "cache:get-cache",
-      info: "Esperando respuesta de la caché totalmente asociativa",
-      value: this.associativeCache.getSteps(),
+      info: `Solicitando datos a la caché totalmente asociativa para la dirección ${direccionHex}`,
+      value: [...this.associativeCache.getSteps()],
     });
 
     if (cachedValue === null) {
-      const block = this.memory.getBlock(tag);
+      const block = this.memory.getBlock(direccionHex); // Usar dirección completa
       this.addStep({
         id: "memory:get-block",
-        info: "Esperando respuesta de la memoria",
-        value: this.memory.getSteps(),
+        info: `Fallo de caché - Bloque ${block} obtenido desde memoria principal`,
+        value: [...this.memory.getSteps()],
       });
 
       this.associativeCache.executeSetLine(direccionHex);
       this.addStep({
         id: "cache:set-line",
-        info: "Cargando bloque en la caché totalmente asociativa",
-        value: this.associativeCache.getSteps(),
+        info: `Transferiendo bloque desde memoria principal a caché totalmente asociativa`,
+        value: [...this.associativeCache.getSteps()],
       });
 
       this.output = this.associativeCache.getWord(tag, word);
@@ -180,8 +203,8 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: "Palabra obtenida exitosamente",
-      value: this.output,
+      info: `Operación completada - Palabra ${this.output} entregada al procesador`,
+      value: this.output!,
     });
 
     this.emit("execute", "get-word");

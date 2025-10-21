@@ -19,14 +19,12 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     const { tag, word } = parseHexAssociativeAddress(hexAddress);
     this.addStep({
       id: "decode-address",
-      info: `Dirección decodificada: tag=${tag}, palabra=${word}`,
-      value: { tag, word },
+      info: `Caché totalmente asociativa - Búsqueda de etiqueta ${tag} en todas las líneas disponibles`,
     });
 
     this.addStep({
       id: "search-tag",
-      info: `Buscando etiqueta ${tag} en todas las líneas de caché`,
-      value: tag,
+      info: `Búsqueda exhaustiva: comparando etiqueta ${tag} con cada una de las 20 líneas de la caché`,
     });
 
     let found = false;
@@ -42,26 +40,21 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
         foundLine = i;
         this.addStep({
           id: "check-line",
-          info: `Línea ${20 - aux}: etiqueta coincide - ACIERTO`,
-          value: { line: 20 - aux, match: true },
+          info: `Línea ${20 - aux}: ¡ETIQUETA ENCONTRADA! - ACIERTO`,
         });
         break;
       } else if (entry) {
         this.addStep({
           id: "check-line",
-          info: `Línea ${20 - aux}: etiqueta=${i} - NO coincide`,
-          value: { line: 20 - aux, match: false },
+          info: `Línea ${20 - aux}: etiqueta diferente - continuando búsqueda`,
         });
       }
     }
 
     while (aux && !found) {
-      const linea = 0;
-      const tag = randomBinaryChar(8);
       this.addStep({
         id: "check-line",
-        info: `Línea ${20 - aux}: etiqueta=${tag} - NO coincide`,
-        value: { line: linea, match: false },
+        info: `Línea ${20 - aux}: etiqueta diferente - continuando búsqueda`,
       });
       aux--;
     }
@@ -71,15 +64,14 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
       this.output = this.lines[foundLine].substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
-        info: `Acierto de caché - Etiqueta encontrada en línea ${foundLine}`,
-        value: this.output,
+        info: `¡ACIERTO! Etiqueta encontrada en línea ${foundLine}. Valor recuperado: ${this.output}`,
       });
       return this.output;
     }
 
     this.addStep({
       id: "cache-miss",
-      info: "Etiqueta no encontrada - FALLO de caché",
+      info: "FALLO - Etiqueta no encontrada en ninguna línea. Se requiere acceso a memoria principal",
     });
 
     this.output = null;
@@ -98,19 +90,16 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
     let { tag, word } = parseHexAssociativeAddress(hexAddress);
     const freeLine = tag;
     console.log(tag);
-    this.lines[freeLine] = this.memory.getBlock(hexAddress);
 
     this.addStep({
       id: "select-line",
-      info: `Todas las líneas ocupadas - reemplazo aleatorio en línea ${freeLine}`,
-      value: { line: freeLine, replacement: true },
+      info: `Política de reemplazo: seleccionada línea ${freeLine} para almacenar nuevo bloque`,
     });
 
     this.lines[freeLine] = this.memory.getBlock(hexAddress);
     this.addStep({
       id: "load-memory",
-      info: `Bloque cargado en línea ${freeLine}`,
-      value: { line: freeLine, entry: this.lines[freeLine] },
+      info: `Bloque cargado desde memoria principal a línea ${freeLine} de la caché totalmente asociativa`,
     });
   }
 }
@@ -118,31 +107,11 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
 // Tipado de pasos
 export type AssociativeCacheStep = Step &
   (
-    | {
-        id: "decode-address";
-        value: { tag: string; word: string };
-      }
-    | {
-        id: "search-tag";
-        value: string;
-      }
-    | {
-        id: "check-line";
-        value: { line: number; match?: boolean; empty?: boolean };
-      }
-    | {
-        id: "cache-hit";
-        value: string;
-      }
-    | {
-        id: "cache-miss";
-      }
-    | {
-        id: "select-line";
-        value: { line: string; free?: boolean; replacement?: boolean };
-      }
-    | {
-        id: "load-memory";
-        value: { line: string; entry: string };
-      }
+    | { id: "decode-address" }
+    | { id: "search-tag" }
+    | { id: "check-line" }
+    | { id: "cache-hit" }
+    | { id: "cache-miss" }
+    | { id: "select-line" }
+    | { id: "load-memory" }
   );

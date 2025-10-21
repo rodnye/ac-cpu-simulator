@@ -1,23 +1,27 @@
-import { useState, useEffect } from "react";
-import { ReactFlow, Background, type Edge } from "@xyflow/react";
+import { useState, useEffect, useCallback } from "react";
+import {
+  ReactFlow,
+  Background,
+  type Edge,
+  BackgroundVariant,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { UserActions } from "./components/controls/UserActions.tsx";
-import { Cpu, type CpuStep } from "./services/Cpu.ts";
+import { UserActions } from "./components/controls/UserActions";
+import { Cpu, type CpuStep } from "./services/Cpu";
 import {
   ComputerNode,
   type IComputerNodeData,
-} from "./components/nodes/ComputerNode.tsx";
-import { motion } from "framer-motion";
-
+} from "./components/nodes/ComputerNode";
 import cpuImg from "./assets/cpu_pc_components.png";
 import cacheImg from "./assets/cache_pc_components.png";
 import memoryImg from "./assets/ram_pc_components.png";
-import { ControlPanel } from "./components/controls/ControlPanel.tsx";
-import type { MemoryStep } from "./services/Memory.ts";
-import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCache.ts";
-import type { DirectCacheStep } from "./services/cache/DirectCache.ts";
-import type { CacheEntry, CacheType } from "./services/cache/Cache.ts";
-import type { AssociativeCacheStep } from "./services/cache/AssociativeCache.ts";
+import { ControlPanel } from "./components/controls/ControlPanel";
+import type { MemoryStep } from "./services/Memory";
+import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCache";
+import type { DirectCacheStep } from "./services/cache/DirectCache";
+import type { CacheType } from "./services/cache/Cache";
+import type { AssociativeCacheStep } from "./services/cache/AssociativeCache";
+import { motion, AnimatePresence } from "framer-motion";
 
 const initialNodes: IComputerNodeData[] = [
   {
@@ -25,20 +29,24 @@ const initialNodes: IComputerNodeData[] = [
     position: { x: 100, y: 7 },
     data: {
       Component: () => (
-        <img src={cpuImg} className="w-24 filter brightness-110" />
+        <img src={cpuImg} alt="CPU" className="w-24 filter brightness-110" />
       ),
       status: "idle",
       statusText: "",
-      statusPosition: "left",
+      statusPosition: "top",
     },
     type: "component",
   },
   {
     id: "cache",
-    position: { x: 260, y: 90 },
+    position: { x: 260, y: -70 },
     data: {
       Component: () => (
-        <img src={cacheImg} className="h-12 filter brightness-110" />
+        <img
+          src={cacheImg}
+          alt="Cache"
+          className="h-12 filter brightness-110"
+        />
       ),
       status: "idle",
       statusText: "",
@@ -48,45 +56,20 @@ const initialNodes: IComputerNodeData[] = [
   },
   {
     id: "memory",
-    position: { x: 100, y: 250 },
+    position: { x: 500, y: 23 },
     type: "component",
     data: {
       Component: () => (
-        <img src={memoryImg} className="w-24 h-16 filter brightness-110" />
+        <img
+          src={memoryImg}
+          alt="Memory"
+          className="w-24 h-16 filter brightness-110"
+        />
       ),
       status: "idle",
       statusText: "",
-      statusPosition: "right",
+      statusPosition: "bottom",
     },
-  },
-  {
-    id: "aux",
-    position: { x: 300, y: 250 },
-    type: "component",
-    data: {
-      Component: () => "",
-      status: "idle",
-      statusText: "",
-      statusPosition: "right",
-    },
-  },
-] as const;
-
-const cacheOptions = [
-  {
-    value: "direct",
-    label: "Caché Directa",
-    color: "from-cyan-500 to-blue-500",
-  },
-  {
-    value: "associative",
-    label: "Caché Asociativa",
-    color: "from-purple-500 to-pink-500",
-  },
-  {
-    value: "set-associative",
-    label: "Caché Asociativa por Conjuntos",
-    color: "from-orange-500 to-red-500",
   },
 ];
 
@@ -110,431 +93,343 @@ const initialEdges: Edge[] = [
     labelShowBg: false,
     style: { stroke: "#4B5563", strokeWidth: "3px" },
   },
-] as const;
+];
 
 const cpuManager = new Cpu();
 
 export default function App() {
-  const [nodes, setNodes] = useState(initialNodes);
-  const [edges, setEdges] = useState(initialEdges);
+  const [nodes, setNodes] = useState<IComputerNodeData[]>(initialNodes);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [totalSteps, setTotalSteps] = useState(0);
-  const [cacheType, setCacheType] = useState<
-    "direct" | "associative" | "set-associative"
-  >("direct");
-  const [{ cpu }, setCpuWrapper] = useState({ cpu: cpuManager });
-  const [, setIsInitialized] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [cacheType, setCacheType] = useState<CacheType>("direct");
+  const [executionHistory, setExecutionHistory] = useState<string[]>([]);
 
-  const renderCpu = () => setCpuWrapper({ cpu });
-  const renderNodes = () => setNodes([...nodes]);
-  const renderEdges = () =>
-    setEdges(
-      edges.map((e) => {
-        e.id = [
-          e.id.split(":")[0],
-          e.animated,
-          e.style!.animationDirection,
-        ].join(":");
-
-        // FIXME: esto oculta temporalmente los label, estan feos
-        e.label = "";
-        return e;
-      }),
-    );
-  const clearStatus = () => {
-    edges.forEach((e) => {
-      e.animated = false;
-      delete e.label;
-    });
-    nodes.forEach((n) => {
-      n.data.status = "idle";
-    });
-  };
-
-  const getCacheLines = () => {
-    if (cacheType === "direct") {
-      return cpu.directCache.lines;
-    } else if (cacheType === "associative") {
-      return cpu.associativeCache.lines;
-    } else {
-      // For set-associative cache, flatten the sets
-      const setCache = cpu.setAssociativeCache;
-      const allLines: (CacheEntry | null)[] = [];
-      Object.values(setCache.sets || {}).forEach((set) => {
-        if (Array.isArray(set)) {
-          allLines.push(...set);
-        }
-      });
-      return allLines;
+  // Función para actualizar estados de pasos
+  const updateStepState = useCallback(() => {
+    try {
+      const steps = cpuManager.getSteps();
+      setTotalSteps(steps.length);
+      const completedSteps = steps.filter(
+        (step) => !cpuManager.getSteps().includes(step as any),
+      ).length;
+      setCurrentStep(Math.max(0, completedSteps));
+    } catch (error) {
+      console.error("Error updating step state:", error);
     }
-  };
-
-  useEffect(() => {
-    setIsInitialized(true);
   }, []);
+
+  const clearStatus = useCallback(() => {
+    const updatedEdges = edges.map((e) => ({
+      ...e,
+      animated: false,
+      label: "",
+    }));
+
+    const updatedNodes = nodes.map((n) => ({
+      ...n,
+      data: {
+        ...n.data,
+        status: "idle" as const,
+        statusText: "",
+      },
+    }));
+
+    setEdges(updatedEdges);
+    setNodes(updatedNodes);
+  }, [edges, nodes]);
+
+  const handleNextStep = useCallback(() => {
+    if (cpuManager.hasNext()) {
+      cpuManager.next();
+      updateStepState();
+    }
+  }, [updateStepState]);
+
+  const handleReset = useCallback(() => {
+    cpuManager.stopTimer();
+    cpuManager.setSteps([]);
+    clearStatus();
+    updateStepState();
+    setExecutionHistory([]);
+  }, [clearStatus, updateStepState]);
+
+  const handleStop = useCallback(() => {
+    cpuManager.stopTimer();
+    updateStepState();
+  }, [updateStepState]);
 
   useEffect(() => {
     const { memory, directCache, associativeCache, setAssociativeCache } =
       cpuManager;
-    const [cpuNode, cacheNode, memoryNode] = nodes;
-    const [cpuCacheEdge, cpuMemoryEdge] = edges;
 
     const handleCpuStep = (step: CpuStep) => {
-      cpuNode.data.status = "active";
-      cpuNode.data.statusText = step.info;
+      clearStatus();
 
-      if (step.id.startsWith("cache:") || step.id.startsWith("set-cache:")) {
-        cpuCacheEdge.animated = true;
-        cpuCacheEdge.style = {
-          ...cpuCacheEdge.style,
-          stroke: "#06B6D4",
-          strokeWidth: "4px",
-          animationDirection:
-            step.value.length > 1 || step.id.includes("set-line")
-              ? "normal"
-              : "reverse",
-        };
-      }
+      // Agregar al historial
+      setExecutionHistory((prev) => [...prev, `CPU: ${step.info}`]);
 
-      renderEdges();
-      renderNodes();
-      renderCpu();
+      // Actualizar nodo CPU
+      const updatedNodes = nodes.map((node) => {
+        if (node.id === "cpu") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status: "active" as const,
+              statusText: step.info,
+            },
+          };
+        }
+        return node;
+      });
+
+      setNodes(updatedNodes);
+
+      // Actualizar edges según el tipo de paso
+      const updatedEdges = edges.map((edge) => {
+        if (step.id.startsWith("cache:") || step.id.startsWith("set-cache:")) {
+          if (edge.id === "cpu-cache") {
+            return {
+              ...edge,
+              animated: true,
+              style: {
+                ...edge.style,
+                stroke: "#06b6d4",
+              },
+            };
+          }
+        } else if (step.id.startsWith("memory:")) {
+          if (edge.id === "cpu-memory") {
+            return {
+              ...edge,
+              animated: true,
+              style: {
+                ...edge.style,
+                stroke: "#ef4444",
+              },
+            };
+          }
+        }
+        return edge;
+      });
+
+      setEdges(updatedEdges);
+      updateStepState();
     };
 
     const handleMemoryStep = (step: MemoryStep) => {
-      memoryNode.data.status = "active";
-      memoryNode.data.statusText = step.info;
+      setExecutionHistory((prev) => [...prev, `Memoria: ${step.info}`]);
 
-      if (step.id === "get-block") {
-        cpuMemoryEdge.label = step.value + "";
-        cpuMemoryEdge.animated = true;
-        cpuMemoryEdge.style = {
-          ...cpuMemoryEdge.style,
-          stroke: "#8B5CF6",
-          strokeWidth: "4px",
-          animationDirection: "reverse",
-        };
-        renderEdges();
-      }
-
-      renderNodes();
-      renderCpu();
-    };
-
-    const handleDirectCacheStep = (step: DirectCacheStep) => {
-      switch (step.id) {
-        case "cache-hit":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value;
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#10B981",
-            strokeWidth: "4px",
+      const updatedNodes = nodes.map((node) => {
+        if (node.id === "memory") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status: "active" as const,
+              statusText: step.info,
+            },
           };
-          cpuMemoryEdge.style = {
-            ...cpuMemoryEdge.style,
-            stroke: "#4B5563",
-          };
-          renderEdges();
-          break;
-        case "load-memory":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value.line + ":" + step.value.entry.tag;
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#06B6D4",
-            strokeWidth: "4px",
-          };
-          renderEdges();
-          break;
-        case "cache-miss":
-          cacheNode.data.status = "error";
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#EF4444",
-            strokeWidth: "4px",
-          };
-          break;
-        default:
-          cacheNode.data.status = "active";
-          cpuMemoryEdge.animated = true;
-          break;
-      }
-      cacheNode.data.statusText = step.info;
-
-      renderNodes();
-      renderCpu();
-    };
-
-    const handleAssociativeCacheStep = (step: AssociativeCacheStep) => {
-      switch (step.id) {
-        case "cache-hit":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value;
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#10B981",
-            strokeWidth: "4px",
-          };
-          cpuMemoryEdge.style = {
-            ...cpuMemoryEdge.style,
-            stroke: "#4B5563",
-          };
-          renderEdges();
-          break;
-        case "load-memory":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value.line + ":" + step.value.entry.tag;
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#06B6D4",
-            strokeWidth: "4px",
-          };
-          renderEdges();
-          break;
-        case "cache-miss":
-          cacheNode.data.status = "error";
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#EF4444",
-            strokeWidth: "4px",
-          };
-          break;
-        default:
-          cacheNode.data.status = "active";
-          break;
-      }
-      cacheNode.data.statusText = step.info;
-
-      renderNodes();
-      renderCpu();
-    };
-
-    const handleSetAssociativeCacheStep = (step: SetAssociativeCacheStep) => {
-      switch (step.id) {
-        case "cache-hit":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#10B981",
-            strokeWidth: "4px",
-          };
-          cpuMemoryEdge.style = {
-            ...cpuMemoryEdge.style,
-            stroke: "#4B5563",
-          };
-          renderEdges();
-          break;
-        case "load-memory": {
-          cacheNode.data.status = "success";
-          const setInfo =
-            step.value.set !== undefined ? `Set ${step.value.set}, ` : "";
-          const wayInfo =
-            step.value.way !== undefined ? `Way ${step.value.way}` : "";
-          cpuCacheEdge.label = setInfo + wayInfo + ":" + step.value.entry.tag;
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#06B6D4",
-            strokeWidth: "4px",
-          };
-          renderEdges();
-          break;
         }
-        case "cache-miss":
-          cacheNode.data.status = "error";
-          cpuCacheEdge.style = {
-            ...cpuCacheEdge.style,
-            stroke: "#EF4444",
-            strokeWidth: "4px",
-          };
-          break;
-        default:
-          cacheNode.data.status = "active";
-          break;
-      }
-      cacheNode.data.statusText = step.info;
+        return node;
+      });
 
-      renderNodes();
-      renderCpu();
+      setNodes(updatedNodes);
     };
 
-    // for CPU
+    const handleCacheStep = (
+      step: DirectCacheStep | SetAssociativeCacheStep | AssociativeCacheStep,
+    ) => {
+      setExecutionHistory((prev) => [...prev, `Cache: ${step.info}`]);
+
+      let status: IComputerNodeData["data"]["status"] = "active";
+      let statusText = step.info;
+
+      switch (step.id) {
+        case "cache-hit":
+          status = "success";
+          break;
+        case "load-memory":
+          status = "success";
+          break;
+        case "cache-miss":
+          status = "error";
+          break;
+      }
+
+      const updatedNodes = nodes.map((node) => {
+        if (node.id === "cache") {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              status,
+              statusText,
+            },
+          };
+        }
+        return node;
+      });
+
+      setNodes(updatedNodes);
+    };
+
+    // Event listeners
     cpuManager.on("step", handleCpuStep);
-    cpuManager.on("execute", () => {
-      setTotalSteps(cpuManager.getSteps().length);
-      renderCpu();
-      cpuMemoryEdge.style = {
-        ...cpuMemoryEdge.style,
-        stroke: "#4B5563",
-      };
-      cpuCacheEdge.style = {
-        ...cpuCacheEdge.style,
-        stroke: "#4B5563",
-      };
-      renderEdges();
-    });
-    cpuManager.on("timer-start", renderCpu);
-    cpuManager.on("timer-stop", renderCpu);
+    cpuManager.on("execute", updateStepState);
+    cpuManager.on("timer-start", updateStepState);
+    cpuManager.on("timer-stop", updateStepState);
 
-    // for Memory
     memory.on("step", handleMemoryStep);
-    memory.on("execute", renderCpu);
+    directCache.on("step", handleCacheStep);
+    associativeCache.on("step", handleCacheStep);
+    setAssociativeCache.on("step", handleCacheStep);
 
-    // cache
-    directCache.on("step", handleDirectCacheStep);
-    directCache.on("execute", renderCpu);
-    setAssociativeCache.on("step", handleSetAssociativeCacheStep);
-    setAssociativeCache.on("execute", renderCpu);
-    associativeCache.on("execute", renderCpu);
-
-    // Cleanup function
+    // Cleanup
     return () => {
       cpuManager.off("step", handleCpuStep);
-      cpuManager.off("execute");
-      cpuManager.off("timer-start");
-      cpuManager.off("timer-stop");
+      cpuManager.off("execute", updateStepState);
+      cpuManager.off("timer-start", updateStepState);
+      cpuManager.off("timer-stop", updateStepState);
 
       memory.off("step", handleMemoryStep);
-      memory.off("execute");
-
-      directCache.off("step", handleDirectCacheStep);
-      directCache.off("execute");
-
-      associativeCache.off("step", handleAssociativeCacheStep);
-      associativeCache.off("execute");
-      setAssociativeCache.off("step", handleSetAssociativeCacheStep);
-      setAssociativeCache.off("execute");
+      directCache.off("step", handleCacheStep);
+      associativeCache.off("step", handleCacheStep);
+      setAssociativeCache.off("step", handleCacheStep);
     };
-  });
+  }, [clearStatus, edges, nodes, updateStepState]);
 
   return (
-    <>
-      <div
-        className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-        style={{ width: "100vw", height: "100vh" }}
-      >
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={{
-            component: ComputerNode,
-          }}
-          fitView
-        >
-          <Background color="#4B5563" gap={32} />
-        </ReactFlow>
+    <div className="relative w-screen h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+      <div className="flex w-full h-full">
+        {/* Main Simulation Area */}
+        <div className="flex-1 relative">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={{
+              component: ComputerNode,
+            }}
+            fitView
+            minZoom={0.5}
+            maxZoom={1.5}
+          >
+            <Background
+              color="#4B5563"
+              gap={20}
+              size={1}
+              variant={BackgroundVariant.Dots}
+            />
+          </ReactFlow>
+        </div>
 
-        {/* Cache Type Selector */}
-        <motion.div
-          className="absolute top-4 left-4"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        ></motion.div>
+        {/* Control Panel - Solo UserActions ahora */}
+        <div className="w-80 bg-gray-800/50 backdrop-blur-sm border-l border-gray-700 flex flex-col">
+          <div className="p-6">
+            <UserActions
+              cpu={cpuManager}
+              cacheType={cacheType}
+              onCacheTypeChange={setCacheType}
+            />
+          </div>
 
-        {/* User Actions */}
-        <motion.div
-          className="absolute top-0 left-0 flex flex-col"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <div className="bg-gray-800/90 backdrop-blur-xl border border-gray-700/60 rounded-2xl shadow-2xl p-6">
-            <label className="block text-sm font-semibold text-cyan-200 mb-4">
-              Tipo de Caché:
-            </label>
+          {/* Execution History - Ocupa el espacio restante con scroll mejorado */}
+          <div className="flex-1 flex flex-col min-h-0 p-6 pt-0">
+            <div className="h-full bg-gray-900/50 rounded-lg border border-gray-700 flex flex-col">
+              <div className="p-4 border-b border-gray-700 flex-shrink-0">
+                <h3 className="text-lg font-semibold text-gray-300">
+                  Historial de Ejecución
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  {executionHistory.length} eventos registrados
+                </p>
+              </div>
 
-            <div className="space-y-3">
-              {cacheOptions.map((option) => (
-                <motion.label
-                  key={option.value}
-                  className="flex items-center cursor-pointer group"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                >
-                  <input
-                    type="radio"
-                    value={option.value}
-                    checked={cacheType === option.value}
-                    onChange={(e) => setCacheType(e.target.value as CacheType)}
-                    className="mr-3 text-cyan-500 focus:ring-cyan-500 border-gray-600 bg-gray-700"
-                  />
-                  <span
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                      cacheType === option.value
-                        ? `bg-gradient-to-r ${option.color} text-white shadow-lg`
-                        : "text-gray-400 hover:text-white bg-gray-700/50 hover:bg-gray-700"
-                    }`}
-                  >
-                    {option.label}
-                  </span>
-                </motion.label>
-              ))}
+              {/* Contenedor de scroll con altura fija y overflow controlado */}
+              <div className="flex-1 min-h-0 overflow-hidden">
+                <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 hover:scrollbar-thumb-gray-500">
+                  <div className="p-4 space-y-3">
+                    <AnimatePresence initial={false}>
+                      {executionHistory
+                        .slice(-50) // Mostrar más elementos
+                        .map((entry, index, array) => (
+                          <motion.div
+                            key={`${index}-${entry}-${Date.now()}`} // Key más única
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, x: -100 }}
+                            transition={{
+                              duration: 0.3,
+                              ease: "easeOut",
+                            }}
+                            className="p-3 bg-gray-800/50 rounded-lg border-l-4 border-cyan-500 text-sm text-gray-300 hover:bg-gray-800/70 transition-colors duration-200"
+                          >
+                            <div className="flex items-start gap-2">
+                              <span className="text-cyan-400 text-xs mt-0.5 flex-shrink-0">
+                                {array.length - index}.
+                              </span>
+                              <span className="flex-1 whitespace-pre-wrap break-words">
+                                {entry}
+                              </span>
+                            </div>
+                          </motion.div>
+                        ))}
+                    </AnimatePresence>
+
+                    {executionHistory.length === 0 && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center text-gray-500 py-12"
+                      >
+                        <div className="text-3xl mb-3">📋</div>
+                        <p className="text-gray-400">
+                          El historial aparecerá aquí
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Ejecuta operaciones para ver el registro
+                        </p>
+                      </motion.div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer del historial */}
+              {executionHistory.length > 0 && (
+                <div className="p-3 border-t border-gray-700 bg-gray-800/30 flex-shrink-0">
+                  <div className="flex justify-between items-center text-xs text-gray-400">
+                    <span>
+                      Mostrando {Math.min(executionHistory.length, 50)} de{" "}
+                      {executionHistory.length}
+                    </span>
+                    <button
+                      onClick={() => setExecutionHistory([])}
+                      className="text-rose-400 hover:text-rose-300 transition-colors px-2 py-1 rounded hover:bg-rose-400/10"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          <UserActions
-            cpu={cpu}
-            cacheType={cacheType}
-            onCacheTypeChange={setCacheType}
-          />
-        </motion.div>
-
-        {/* Cache Table */}
-        <motion.div
-          className="absolute bottom-4 right-4"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-        ></motion.div>
-
-        {/* Control Panel */}
-        <motion.div
-          className="absolute top-4 right-4"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-        >
-          <ControlPanel
-            onNext={() => {
-              clearStatus();
-              cpu.next();
-            }}
-            onReset={() => cpu.startTimer(3000)}
-            onStop={() => cpu.stopTimer()}
-            isRunning={cpu.timerRunning}
-            hasNext={cpu.hasNext()}
-            totalSteps={totalSteps}
-            currentStep={totalSteps - cpuManager.getSteps().length}
-          />
-        </motion.div>
-
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            className="absolute top-1/4 left-1/4 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.3, 0.5, 0.3],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-          <motion.div
-            className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl"
-            animate={{
-              scale: [1.2, 1, 1.2],
-              opacity: [0.4, 0.2, 0.4],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
         </div>
       </div>
-    </>
+
+      {/* Bottom Control Panel */}
+      <div className="absolute bottom-4 left-4">
+        <ControlPanel
+          onNext={handleNextStep}
+          onReset={handleReset}
+          onStop={handleStop}
+          isRunning={cpuManager.timerRunning}
+          hasNext={cpuManager.hasNext()}
+          totalSteps={totalSteps}
+          currentStep={currentStep}
+        />
+      </div>
+    </div>
   );
 }

@@ -7,6 +7,8 @@ import {
 } from "../../utils/convert";
 
 export class DirectCache extends Cache<DirectCacheStep> {
+  private tags: Record<string, string> = {}; // Nuevo: almacenar tags por línea
+
   public executeGetLine(hexAddress: string) {
     this.emit("execute", "get-line");
     this.setSteps([]);
@@ -24,53 +26,49 @@ export class DirectCache extends Cache<DirectCacheStep> {
       }
       this.addStep({
         id: "decode-address-bin",
-        info: `Convertir a binario de 4 posiciones`,
-        value: binTable,
+        info: `Conversión de dirección hexadecimal ${hexAddress} a formato binario para procesamiento en caché`,
       });
     }
 
     this.addStep({
       id: "decode-address",
-      info: `Dirección decodificada`,
-      value: { tag, line, word, bin },
+      info: `Dirección descompuesta en componentes: etiqueta=${tag} (identificador único), línea=${line} (posición en caché), palabra=${word} (posición dentro del bloque)`,
     });
-
-    const binStr = hexTo4BitBinary(hexAddress);
-    const realTag = binStr.substring(0, 8);
 
     this.addStep({
       id: "verify-line",
-      info: `Buscando en la línea ${line}`,
-      value: line,
+      info: `Accediendo a la línea ${line} de la caché directa para verificar si contiene el bloque solicitado`,
     });
 
-    if (realTag) {
+    const currentTag = this.tags[line]; // Obtener tag almacenado en la línea
+
+    if (currentTag) {
       this.addStep({
         id: "verify-tag",
-        info: "Línea encontrada, verificando etiqueta",
+        info: `Comparando etiqueta de la caché (${currentTag}) con etiqueta solicitada (${tag}) para validar coincidencia`,
       });
-      if (realTag === tag) {
-        // ÉXITO
-        const block = this.memory.getBlock(hexAddress);
+
+      if (currentTag === tag) {
+        // ÉXITO - Cache hit
+        const block = this.lines[line]; // Usar bloque de caché, no de memoria
         const index = parseInt(word, 2) * 2;
         this.output = block.substring(index, index + 2);
         this.addStep({
           id: "cache-hit",
-          info: `Bloque encontrado: ${block}`,
-          value: this.output,
+          info: `¡ACIERTO! Bloque encontrado en caché. Palabra recuperada: ${this.output}`,
         });
 
         return this.output;
       } else {
         this.addStep({
           id: "cache-miss",
-          info: "Etiqueta no coincide, fallo de caché",
+          info: `FALLO - La etiqueta no coincide (${currentTag} vs ${tag}). Se requiere acceso a memoria principal`,
         });
       }
     } else {
       this.addStep({
         id: "cache-miss",
-        info: "Fallo de caché: no hay bloque en la línea",
+        info: `FALLO - No hay bloque en la línea ${line}. Se requiere acceso a memoria principal`,
       });
     }
 
@@ -93,47 +91,26 @@ export class DirectCache extends Cache<DirectCacheStep> {
 
     this.emit("execute", "set-line");
     this.setSteps([]);
+
+    // Almacenar tanto el bloque como el tag
     this.lines[line] = block;
+    this.tags[line] = tag; // Guardar el tag para futuras comparaciones
+
     this.addStep({
       id: "load-memory",
-      info: `Cacheando: \nLínea ${line}\nBloque ${block}`,
-      value: { line, block },
+      info: `Cargando bloque desde memoria principal a caché directa: Línea ${line}, Tag ${tag}, Bloque ${block}`,
     });
   }
 }
 
 // tipado de pasos
-export type DirectCacheStep = Omit<Step, "value"> &
+export type DirectCacheStep = Step &
   (
-    | {
-        id: "decode-address-bin";
-        value: [string, string][];
-      }
-    | {
-        id: "decode-address";
-        value: {
-          tag: string;
-          line: string;
-          word: string;
-          bin: string;
-        };
-      }
-    | {
-        id: "verify-line";
-        value: string;
-      }
-    | {
-        id: "cache-miss";
-      }
-    | {
-        id: "cache-hit";
-        value: DirectCache["output"];
-      }
-    | {
-        id: "verify-tag";
-      }
-    | {
-        id: "load-memory";
-        value: { line: string; block: string };
-      }
+    | { id: "decode-address-bin" }
+    | { id: "decode-address" }
+    | { id: "verify-line" }
+    | { id: "cache-miss" }
+    | { id: "cache-hit" }
+    | { id: "verify-tag" }
+    | { id: "load-memory" }
   );
