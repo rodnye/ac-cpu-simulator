@@ -1,4 +1,4 @@
-// App.tsx - Versión corregida
+// App.tsx - Versión modificada
 import { useState, useEffect, useCallback } from "react";
 import {
   ReactFlow,
@@ -23,7 +23,7 @@ import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCac
 import type { DirectCacheStep } from "./services/cache/DirectCache";
 import type { CacheType } from "./services/cache/Cache";
 import type { AssociativeCacheStep } from "./services/cache/AssociativeCache";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 // Definir el tipo de nodo correctamente
 type CustomNode = Node<IComputerNodeData["data"]> & {
@@ -112,7 +112,7 @@ export default function App() {
   const [totalSteps, setTotalSteps] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [cacheType, setCacheType] = useState<CacheType>("direct");
-  const [executionHistory, setExecutionHistory] = useState<string[]>([]);
+  const [currentStepDetail, setCurrentStepDetail] = useState<any>(null);
 
   // Función para actualizar estados de pasos
   const updateStepState = useCallback(() => {
@@ -160,9 +160,10 @@ export default function App() {
     cpuManager.setSteps([]);
     clearStatus();
     updateStepState();
-    setExecutionHistory([]);
+    setCurrentStepDetail(null);
   }, [clearStatus, updateStepState]);
 
+  // Efecto para manejar los pasos de ejecución
   useEffect(() => {
     const { memory, directCache, associativeCache, setAssociativeCache } =
       cpuManager;
@@ -170,25 +171,13 @@ export default function App() {
     const handleCpuStep = (step: CpuStep) => {
       clearStatus();
 
-      // Agregar al historial
-      setExecutionHistory((prev) => [...prev, `CPU: ${step.info}`]);
-
-      // Actualizar nodo CPU
-      setNodes((prevNodes) =>
-        prevNodes.map((node) => {
-          if (node.id === "cpu") {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                status: "active" as const,
-                statusText: step.info,
-              },
-            };
-          }
-          return node;
-        }),
-      );
+      // Mostrar paso actual
+      setCurrentStepDetail({
+        type: "cpu",
+        data: step,
+        title: "Paso de CPU",
+        icon: "⚡",
+      });
 
       // Actualizar edges según el tipo de paso
       const updatedEdges = edges.map((edge) => {
@@ -223,60 +212,23 @@ export default function App() {
     };
 
     const handleMemoryStep = (step: MemoryStep) => {
-      setExecutionHistory((prev) => [...prev, `Memoria: ${step.info}`]);
-
-      setNodes((prevNodes) =>
-        prevNodes.map((node) => {
-          if (node.id === "memory") {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                status: "active" as const,
-                statusText: step.info,
-              },
-            };
-          }
-          return node;
-        }),
-      );
+      setCurrentStepDetail({
+        type: "memory",
+        data: step,
+        title: "Paso de Memoria",
+        icon: "💾",
+      });
     };
 
     const handleCacheStep = (
       step: DirectCacheStep | SetAssociativeCacheStep | AssociativeCacheStep,
     ) => {
-      setExecutionHistory((prev) => [...prev, `Cache: ${step.info}`]);
-
-      let status: IComputerNodeData["data"]["status"] = "active";
-      let statusText = step.info;
-
-      switch (step.id) {
-        case "cache-hit":
-          status = "success";
-          break;
-        case "load-memory":
-          status = "success";
-          break;
-        case "cache-miss":
-          status = "error";
-          break;
-      }
-
-      setNodes((prevNodes) =>
-        prevNodes.map((node) => {
-          if (node.id === "cache") {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                status,
-                statusText,
-              },
-            };
-          }
-          return node;
-        }),
-      );
+      setCurrentStepDetail({
+        type: "cache",
+        data: step,
+        title: "Paso de Caché",
+        icon: "🚀",
+      });
     };
 
     // Event listeners
@@ -284,6 +236,9 @@ export default function App() {
     cpuManager.on("execute", updateStepState);
     cpuManager.on("timer-start", updateStepState);
     cpuManager.on("timer-stop", updateStepState);
+    cpuManager.on("reset", () => {
+      setCurrentStepDetail(null);
+    });
 
     memory.on("step", handleMemoryStep);
     directCache.on("step", handleCacheStep);
@@ -296,6 +251,9 @@ export default function App() {
       cpuManager.off("execute", updateStepState);
       cpuManager.off("timer-start", updateStepState);
       cpuManager.off("timer-stop", updateStepState);
+      cpuManager.off("reset", () => {
+        setCurrentStepDetail(null);
+      });
 
       memory.off("step", handleMemoryStep);
       directCache.off("step", handleCacheStep);
@@ -328,102 +286,101 @@ export default function App() {
           </ReactFlow>
         </div>
 
-        {/* Control Panel */}
-        <div className="w-80 bg-gray-800/50 backdrop-blur-sm border-l border-gray-700 flex flex-col">
-          <div className="p-6">
-            <UserActions
-              cpu={cpuManager}
-              cacheType={cacheType}
-              onCacheTypeChange={setCacheType}
-            />
+        {/* Sidebar con UserActions y StepVisualizer */}
+        <div className="w-96 flex flex-col">
+          {/* Panel de control del usuario */}
+          <div className="bg-gray-800/50 backdrop-blur-sm border-l border-gray-700 flex-shrink-0">
+            <div className="p-6">
+              <UserActions
+                cpu={cpuManager}
+                cacheType={cacheType}
+                onCacheTypeChange={(newType) => {
+                  setCacheType(newType);
+                }}
+              />
+            </div>
           </div>
 
-          {/* Execution History */}
-          <div className="flex-1 flex flex-col min-h-0 p-6 pt-0">
-            <div className="h-full bg-gray-900/50 rounded-lg border border-gray-700 flex flex-col">
-              <div className="p-4 border-b border-gray-700 flex-shrink-0">
-                <h3 className="text-lg font-semibold text-gray-300">
-                  Historial de Ejecución
-                </h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  {executionHistory.length} eventos registrados
-                </p>
-              </div>
-
-              <div className="flex-1 min-h-0 overflow-hidden">
-                <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 hover:scrollbar-thumb-gray-500">
-                  <div className="p-4 space-y-3">
-                    <AnimatePresence initial={false}>
-                      {executionHistory
-                        .slice(-50)
-                        .map((entry, index, array) => (
-                          <motion.div
-                            key={`${index}-${entry}-${Date.now()}`}
-                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                            exit={{ opacity: 0, x: -100 }}
-                            transition={{
-                              duration: 0.3,
-                              ease: "easeOut",
-                            }}
-                            className="p-3 bg-gray-800/50 rounded-lg border-l-4 border-cyan-500 text-sm text-gray-300 hover:bg-gray-800/70 transition-colors duration-200"
-                          >
-                            <div className="flex items-start gap-2">
-                              <span className="text-cyan-400 text-xs mt-0.5 flex-shrink-0">
-                                {array.length - index}.
-                              </span>
-                              <span className="flex-1 whitespace-pre-wrap break-words">
-                                {entry}
-                              </span>
-                            </div>
-                          </motion.div>
-                        ))}
-                    </AnimatePresence>
-
-                    {executionHistory.length === 0 && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="text-center text-gray-500 py-12"
-                      >
-                        <div className="text-3xl mb-3">📋</div>
-                        <p className="text-gray-400">
-                          El historial aparecerá aquí
-                        </p>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Ejecuta operaciones para ver el registro
-                        </p>
-                      </motion.div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {executionHistory.length > 0 && (
-                <div className="p-3 border-t border-gray-700 bg-gray-800/30 flex-shrink-0">
-                  <div className="flex justify-between items-center text-xs text-gray-400">
-                    <span>
-                      Mostrando {Math.min(executionHistory.length, 50)} de{" "}
-                      {executionHistory.length}
-                    </span>
-                    <button
-                      onClick={() => setExecutionHistory([])}
-                      className="text-rose-400 hover:text-rose-300 transition-colors px-2 py-1 rounded hover:bg-rose-400/10"
-                    >
-                      Limpiar
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Paso Actual - Colocado justo después del panel del usuario */}
+          <div className="flex-1 p-4 overflow-hidden">
+            <StepVisualizer
+              currentStep={currentStepDetail}
+              totalSteps={totalSteps}
+              currentStepNumber={currentStep}
+              onNextStep={handleNextStep}
+              hasNextStep={cpuManager.hasNext()}
+            />
           </div>
         </div>
       </div>
 
-      {/* Bottom Control Panel */}
-      <div className="absolute bottom-4 left-4">
-        <ControlPanel totalSteps={totalSteps} currentStep={currentStep} />
-      </div>
+      {/* Bottom Control Panel - Eliminado */}
     </div>
   );
 }
+
+// Componente StepVisualizer ajustado
+interface StepVisualizerProps {
+  currentStep: any;
+  totalSteps: number;
+  currentStepNumber: number;
+  onNextStep: () => void;
+  hasNextStep: boolean;
+}
+
+const StepVisualizer = ({
+  currentStep,
+  totalSteps,
+  currentStepNumber,
+}: StepVisualizerProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gray-900/90 backdrop-blur-sm border border-gray-700 rounded-xl p-4 shadow-2xl h-full flex flex-col"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+          {currentStep?.icon || "📋"} Paso Actual
+        </h3>
+        <div className="text-sm text-cyan-400 bg-cyan-400/10 px-2 py-1 rounded">
+          {currentStepNumber}/{totalSteps}
+        </div>
+      </div>
+
+      {currentStep ? (
+        <div className="space-y-3 flex-1 overflow-hidden flex flex-col">
+          <div>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              {currentStep.title}
+            </span>
+            <div className="text-sm font-mono text-cyan-300 bg-gray-800 px-2 py-1 rounded mt-1 break-all">
+              {currentStep.data.id}
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <div className="text-gray-300 text-sm leading-relaxed break-words whitespace-pre-wrap h-full overflow-y-auto">
+              {currentStep.data.info}
+            </div>
+          </div>
+          {currentStep.data.value && (
+            <div className="p-2 bg-gray-700 rounded border-l-4 border-green-500 flex-shrink-0">
+              <span className="text-gray-400 text-xs">Valor: </span>
+              <span className="text-green-400 font-mono text-sm break-all">
+                {typeof currentStep.data.value === "string"
+                  ? currentStep.data.value
+                  : JSON.stringify(currentStep.data.value, null, 2)}
+              </span>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="text-center py-4 text-gray-500 flex-1 flex flex-col justify-center">
+          <div className="text-3xl mb-2">🔄</div>
+          <p className="text-sm">Esperando ejecución...</p>
+          <p className="text-xs mt-1">Ejecuta una operación para comenzar</p>
+        </div>
+      )}
+    </motion.div>
+  );
+};

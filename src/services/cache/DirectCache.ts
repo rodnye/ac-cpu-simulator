@@ -16,6 +16,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
 
     const { tag, line, word, bin } = parseHexAddress(hexAddress);
 
+    // NUEVO: Paso detallado de conversión hexadecimal a binario
     {
       const binTable: [string, string][] = [];
       const iterator = bin.matchAll(/\d{4}/g);
@@ -24,20 +25,27 @@ export class DirectCache extends Cache<DirectCacheStep> {
       while ((value = iterator.next()?.value?.[0]) !== undefined) {
         binTable.push([hexAddress.charAt(binTable.length), value]);
       }
+
+      // Mostrar conversión detallada
+      const conversionDetails = binTable
+        .map(([hexChar, binary]) => `${hexChar} → ${binary}`)
+        .join("\n");
+
       this.addStep({
-        id: "decode-address-bin",
-        info: `Conversión de dirección hexadecimal ${hexAddress} a formato binario para procesamiento en caché`,
+        id: "hex-to-binary",
+        info: `Conversión de dirección hexadecimal a binario:\n\nHexadecimal: ${hexAddress}\n\nConversión carácter por carácter:\n${conversionDetails}\n\nCadena binaria completa: ${bin}`,
       });
     }
 
+    // NUEVO: Mostrar descomposición detallada
     this.addStep({
       id: "decode-address",
-      info: `Dirección descompuesta en componentes: etiqueta=${tag} (identificador único), línea=${line} (posición en caché), palabra=${word} (posición dentro del bloque)`,
+      info: `Descomposición de la dirección binaria:\n\nBinario completo: ${bin}\n\nComponentes:\n• Tag: ${tag} (8 bits) - Identificador único del bloque\n• Línea: ${line} (14 bits) - Posición en caché (línea ${parseInt(line, 2)})\n• Palabra: ${word} (2 bits) - Posición dentro del bloque (palabra ${parseInt(word, 2)})\n`,
     });
 
     this.addStep({
       id: "verify-line",
-      info: `Accediendo a la línea ${line} de la caché directa para verificar si contiene el bloque solicitado`,
+      info: `Accediendo a la línea ${parseInt(line, 2)} de la caché directa para verificar si contiene el bloque solicitado con tag ${tag}`,
     });
 
     const currentTag = this.tags[line]; // Obtener tag almacenado en la línea
@@ -45,7 +53,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
     if (currentTag) {
       this.addStep({
         id: "verify-tag",
-        info: `Comparando etiqueta de la caché (${currentTag}) con etiqueta solicitada (${tag}) para validar coincidencia`,
+        info: `Comparando etiquetas:\n• Tag en caché: ${currentTag}\n• Tag solicitado: ${tag}\n\nResultado: ${currentTag === tag ? "COINCIDENCIA - ACIERTO" : "NO COINCIDE - FALLO"}`,
       });
 
       if (currentTag === tag) {
@@ -55,20 +63,20 @@ export class DirectCache extends Cache<DirectCacheStep> {
         this.output = block.substring(index, index + 2);
         this.addStep({
           id: "cache-hit",
-          info: `¡ACIERTO! Bloque encontrado en caché. Palabra recuperada: ${this.output}`,
+          info: `¡ACIERTO! Bloque encontrado en caché.\n\nDetalles:\n• Línea: ${parseInt(line, 2)}\n• Tag: ${tag}\n• Palabra recuperada: ${this.output}\n• Bloque completo: ${block}`,
         });
 
         return this.output;
       } else {
         this.addStep({
           id: "cache-miss",
-          info: `FALLO - La etiqueta no coincide (${currentTag} vs ${tag}). Se requiere acceso a memoria principal`,
+          info: `FALLO - La etiqueta no coincide.\n\n• Tag en caché: ${currentTag}\n• Tag solicitado: ${tag}\n\nSe requiere acceso a memoria principal para cargar el bloque.`,
         });
       }
     } else {
       this.addStep({
         id: "cache-miss",
-        info: `FALLO - No hay bloque en la línea ${line}. Se requiere acceso a memoria principal`,
+        info: `FALLO - No hay bloque almacenado en la línea ${parseInt(line, 2)}.\n\nSe requiere acceso a memoria principal para cargar el bloque.`,
       });
     }
 
@@ -92,14 +100,15 @@ export class DirectCache extends Cache<DirectCacheStep> {
     this.emit("execute", "set-line");
     this.setSteps([]);
 
+    // Mostrar información detallada del bloque a cargar
+    this.addStep({
+      id: "load-memory",
+      info: `Cargando bloque desde memoria principal a caché directa:\n\n• Dirección: ${directionHex}\n• Línea destino: ${parseInt(line, 2)}\n• Tag: ${tag}\n• Bloque cargado: ${block}\n• Tamaño del bloque: ${block.length * 4} bits`,
+    });
+
     // Almacenar tanto el bloque como el tag
     this.lines[line] = block;
     this.tags[line] = tag; // Guardar el tag para futuras comparaciones
-
-    this.addStep({
-      id: "load-memory",
-      info: `Cargando bloque desde memoria principal a caché directa: Línea ${line}, Tag ${tag}, Bloque ${block}`,
-    });
   }
 
   // Al final de cada clase, agregar:
@@ -114,7 +123,7 @@ export class DirectCache extends Cache<DirectCacheStep> {
 // tipado de pasos
 export type DirectCacheStep = Step &
   (
-    | { id: "decode-address-bin" }
+    | { id: "hex-to-binary" }
     | { id: "decode-address" }
     | { id: "verify-line" }
     | { id: "cache-miss" }

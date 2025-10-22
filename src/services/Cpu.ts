@@ -140,7 +140,7 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: "Palabra obtenida exitosamente",
+      info: `Palabra obtenida exitosamente: ${this.output}`,
       value: this.output,
     });
 
@@ -180,7 +180,7 @@ export class Cpu extends StepManager<CpuStep> {
 
     this.addStep({
       id: "get-word",
-      info: "Palabra obtenida exitosamente",
+      info: `Palabra obtenida exitosamente: ${this.output}`,
       value: this.output,
     });
 

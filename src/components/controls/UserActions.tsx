@@ -1,8 +1,8 @@
-// UserActions.tsx - Versión corregida
+// UserActions.tsx - Versión simplificada
 import { useState, useEffect } from "react";
 import Button from "../atoms/Button";
 import type { Cpu } from "../../services/Cpu";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { CacheType } from "../../services/cache/Cache";
 
 interface UserActionsProps {
@@ -22,7 +22,6 @@ export const UserActions = ({
   const [hasPendingSteps, setHasPendingSteps] = useState(false);
 
   // Efecto para escuchar cambios en el estado de pasos
-  // En UserActions.tsx - Actualizar el useEffect
   useEffect(() => {
     const updateStepState = () => {
       const hasSteps = cpu.getSteps().length > 0;
@@ -48,15 +47,11 @@ export const UserActions = ({
   };
 
   const handleAddressChange = (value: string) => {
-    // Convertir a mayúsculas y filtrar caracteres no hexadecimales
     const filteredValue = value.toUpperCase().replace(/[^0-9A-F]/g, "");
-
-    // Limitar a 6 caracteres
     const truncatedValue = filteredValue.slice(0, 6);
 
     setAddress(truncatedValue);
 
-    // Validar en tiempo real
     if (truncatedValue.length === 6 && !validateHexAddress(truncatedValue)) {
       setError("Dirección hexadecimal inválida");
     } else {
@@ -65,7 +60,6 @@ export const UserActions = ({
   };
 
   const handleExecuteOrNext = async () => {
-    // Si hay pasos pendientes, ejecutar siguiente paso
     if (cpu.hasNext()) {
       try {
         cpu.next();
@@ -76,7 +70,6 @@ export const UserActions = ({
       return;
     }
 
-    // Si no hay pasos pendientes, ejecutar nueva operación
     if (!validateHexAddress(address)) {
       setError(
         "La dirección debe tener exactamente 6 caracteres hexadecimales (0-9, A-F)",
@@ -88,10 +81,8 @@ export const UserActions = ({
     setError("");
 
     try {
-      // Resetear estado visual antes de nueva operación
       cpu.resetVisualState();
 
-      // Pequeño delay para la animación
       await new Promise((resolve) => setTimeout(resolve, 300));
 
       let result;
@@ -111,7 +102,6 @@ export const UserActions = ({
 
       console.log(`Operación ${cacheType} completada. Resultado:`, result);
 
-      // Ejecutar primer paso automáticamente si hay pasos
       if (cpu.hasNext()) {
         setTimeout(() => {
           cpu.next();
@@ -128,13 +118,11 @@ export const UserActions = ({
   };
 
   const handleCacheTypeChange = (newType: CacheType) => {
-    // Cancelar operación actual si hay una en curso
     if (cpu.hasNext() || isLoading) {
       setIsLoading(false);
     }
 
     onCacheTypeChange?.(newType);
-    // Resetear dirección cuando cambia el tipo
     setAddress("000000");
     setError("");
   };
@@ -209,18 +197,15 @@ export const UserActions = ({
         </div>
 
         {/* Mensaje de error */}
-        <AnimatePresence>
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-2 p-2 bg-rose-600/20 border border-rose-500/40 rounded-lg text-rose-300 text-sm"
-            >
-              {error}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            className="mt-2 p-2 bg-rose-600/20 border border-rose-500/40 rounded-lg text-rose-300 text-sm"
+          >
+            {error}
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Execute/Next Button */}
@@ -236,47 +221,14 @@ export const UserActions = ({
         </Button>
 
         {/* Indicador de estado */}
-        <div className="mt-2 text-center">
-          <AnimatePresence>
-            {cpu.hasNext() && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="text-cyan-400 text-sm flex items-center justify-center gap-2"
-              >
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                  className="w-2 h-2 bg-cyan-400 rounded-full"
-                />
-                {cpu.getSteps().length} pasos pendientes
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {cpu.hasNext() && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-cyan-400 text-sm flex items-center justify-center gap-2 mt-2"
+          ></motion.div>
+        )}
       </motion.div>
-
-      {/* Botón de reset */}
-      {(cpu.hasNext() || isLoading) && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full mt-3"
-        >
-          <Button
-            onClick={() => {
-              setIsLoading(false);
-              setError("");
-            }}
-            variant="ghost"
-            size="sm"
-            className="w-full"
-          >
-            Cancelar Operación
-          </Button>
-        </motion.div>
-      )}
     </motion.div>
   );
 };

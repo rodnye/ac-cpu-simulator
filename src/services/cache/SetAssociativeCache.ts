@@ -3,14 +3,13 @@ import {
   binary4BitToHex,
   parseHexAddress,
   randomBinaryChar,
-  randomHexChar,
-  randomInt,
 } from "../../utils/convert";
 import type { Step } from "../StepManager";
 import type { Memory } from "../Memory";
 
 export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
   public sets: Record<string, Record<string, string>>;
+
   private waysPerSet = 4;
 
   constructor(memory: Memory) {
@@ -30,7 +29,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
       const wayAddress = binary4BitToHex(wayTag);
 
-      this.sets[setN][wayTag] = this.memory.getBlock(wayAddress);
+      this.sets[setN][tag] = this.memory.getBlock(wayAddress);
     }
   }
 
@@ -42,8 +41,6 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     // Nota: no resetear this.tags, this.lines, this.sets porque contienen datos reales
   }
 
-  // En SetAssociativeCache.ts, corrige el método executeGetLine:
-
   public executeGetLine(hexAddress: string) {
     this.emit("execute", "get-line");
     this.setSteps([]);
@@ -51,6 +48,17 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
     const { tag, line, word } = parseHexAddress(hexAddress);
     const setNumber = line;
+
+    // NUEVO: Mostrar conversión y descomposición detallada
+    const fullBinary = hexAddress
+      .split("")
+      .map((char) => parseInt(char, 16).toString(2).padStart(4, "0"))
+      .join("");
+
+    this.addStep({
+      id: "hex-to-binary",
+      info: `Conversión de dirección hexadecimal a binario:\n\nHexadecimal: ${hexAddress}\nBinario completo: ${fullBinary}\n\nDescomposición para caché asociativa por conjuntos:\n• Tag: ${tag} (8 bits) - Identificador del bloque\n• Conjunto: ${setNumber} (14 bits) - Grupo ${parseInt(setNumber, 2)}\n• Palabra: ${word} (2 bits)`,
+    });
 
     // CORRECCIÓN: Inicializar conjunto si no existe o está vacío
     if (
@@ -61,13 +69,8 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     }
 
     this.addStep({
-      id: "decode-address",
-      info: `Dirección procesada - Conjunto ${setNumber} seleccionado de 4 posibles, etiqueta ${tag} para identificación, palabra ${word} dentro del bloque`,
-    });
-
-    this.addStep({
       id: "search-set",
-      info: `Explorando las ${this.waysPerSet} vías del conjunto ${setNumber} en búsqueda de la etiqueta ${tag}`,
+      info: `Explorando conjunto ${parseInt(setNumber, 2)}:\n\n• Vías disponibles: ${this.waysPerSet}\n• Etiqueta buscada: ${tag}\n`,
     });
 
     const currentSet = this.sets[setNumber];
@@ -96,13 +99,13 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
         foundTag = currentTag;
         this.addStep({
           id: "check-way",
-          info: `Vía ${wayIndex} en conjunto ${setNumber}: ¡ETIQUETA COINCIDE - ACIERTO!`,
+          info: `Vía ${wayIndex} en conjunto ${parseInt(setNumber, 2)}: ¡ETIQUETA COINCIDE - ACIERTO!\n\n• Etiqueta en vía: ${currentTag}\n• Etiqueta buscada: ${tag}\n• Vía: ${wayIndex}/${this.waysPerSet}`,
         });
         break;
       } else {
         this.addStep({
           id: "check-way",
-          info: `Vía ${wayIndex} en conjunto ${setNumber}: etiqueta diferente (${currentTag.substring(0, 12)}...) - continuando búsqueda`,
+          info: `Vía ${wayIndex} en conjunto ${parseInt(setNumber, 2)}: etiqueta diferente\n\n• Etiqueta en vía: ${currentTag}\n• Etiqueta buscada: ${tag}\n• Continuando búsqueda...`,
         });
       }
     }
@@ -112,14 +115,14 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       this.output = currentSet[foundTag].substring(index, index + 2);
       this.addStep({
         id: "cache-hit",
-        info: `¡ACIERTO! Datos encontrados en conjunto ${setNumber}, vía ${wayIndex}. Valor recuperado: ${this.output}`,
+        info: `¡ACIERTO! Datos encontrados en caché asociativa por conjuntos.\n\nDetalles:\n• Conjunto: ${parseInt(setNumber, 2)}\n• Vía: ${wayIndex}\n• Etiqueta en caché: ${foundTag}\n• Etiqueta buscada: ${tag}\n• Palabra recuperada: ${this.output}\n• Bloque: ${currentSet[foundTag]}`,
       });
       return this.output;
     }
 
     this.addStep({
       id: "cache-miss",
-      info: "FALLO - Etiqueta no encontrada en ninguna vía del conjunto. Se requiere acceso a memoria principal",
+      info: `FALLO - Etiqueta no encontrada en ninguna vía del conjunto.\n\n• Conjunto revisado: ${parseInt(setNumber, 2)}\n• Vías revisadas: ${this.waysPerSet}\n• Etiqueta buscada: ${tag}\n• Se requiere acceso a memoria principal`,
     });
 
     this.output = null;
@@ -151,7 +154,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
     this.addStep({
       id: "select-way",
-      info: `Política de reemplazo aleatoria: seleccionada vía ${selectedWay} (posición ${randomIndex + 1}) en conjunto ${line} para almacenar nuevo bloque`,
+      info: `Política de reemplazo aleatoria:\n\n• Conjunto: ${parseInt(line, 2)}\n• Vía seleccionada: ${randomIndex + 1}\n• Etiqueta a reemplazar: ${selectedWay}\n• Nueva etiqueta: ${tag}`,
     });
 
     delete currentSet[selectedWay];
@@ -159,14 +162,14 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
 
     this.addStep({
       id: "load-memory",
-      info: `Bloque cargado desde memoria principal a conjunto ${line}, reemplazando vía ${selectedWay} con nueva etiqueta ${tag}`,
+      info: `Bloque cargado desde memoria principal:\n\n• Conjunto destino: ${parseInt(line, 2)}\n• Vía: ${randomIndex + 1}\n• Etiqueta en caché: ${tag}\n• Etiqueta buscada: ${tag}\n• Bloque: ${currentSet[tag]}\n• Tamaño: ${currentSet[tag].length * 4} bits`,
     });
   }
 }
 
 export type SetAssociativeCacheStep = Step &
   (
-    | { id: "decode-address" }
+    | { id: "hex-to-binary" }
     | { id: "search-set" }
     | { id: "check-way" }
     | { id: "cache-hit" }
