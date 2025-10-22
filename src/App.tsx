@@ -1,8 +1,10 @@
+// App.tsx - Versión corregida
 import { useState, useEffect, useCallback } from "react";
 import {
   ReactFlow,
   Background,
   type Edge,
+  type Node,
   BackgroundVariant,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -23,7 +25,14 @@ import type { CacheType } from "./services/cache/Cache";
 import type { AssociativeCacheStep } from "./services/cache/AssociativeCache";
 import { motion, AnimatePresence } from "framer-motion";
 
-const initialNodes: IComputerNodeData[] = [
+// Definir el tipo de nodo correctamente
+type CustomNode = Node<IComputerNodeData["data"]> & {
+  id: string;
+  position: { x: number; y: number };
+  type: string;
+};
+
+const initialNodes: CustomNode[] = [
   {
     id: "cpu",
     position: { x: 100, y: 7 },
@@ -98,7 +107,7 @@ const initialEdges: Edge[] = [
 const cpuManager = new Cpu();
 
 export default function App() {
-  const [nodes, setNodes] = useState<IComputerNodeData[]>(initialNodes);
+  const [nodes, setNodes] = useState<CustomNode[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const [totalSteps, setTotalSteps] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
@@ -154,11 +163,6 @@ export default function App() {
     setExecutionHistory([]);
   }, [clearStatus, updateStepState]);
 
-  const handleStop = useCallback(() => {
-    cpuManager.stopTimer();
-    updateStepState();
-  }, [updateStepState]);
-
   useEffect(() => {
     const { memory, directCache, associativeCache, setAssociativeCache } =
       cpuManager;
@@ -170,21 +174,21 @@ export default function App() {
       setExecutionHistory((prev) => [...prev, `CPU: ${step.info}`]);
 
       // Actualizar nodo CPU
-      const updatedNodes = nodes.map((node) => {
-        if (node.id === "cpu") {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              status: "active" as const,
-              statusText: step.info,
-            },
-          };
-        }
-        return node;
-      });
-
-      setNodes(updatedNodes);
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === "cpu") {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: "active" as const,
+                statusText: step.info,
+              },
+            };
+          }
+          return node;
+        }),
+      );
 
       // Actualizar edges según el tipo de paso
       const updatedEdges = edges.map((edge) => {
@@ -221,21 +225,21 @@ export default function App() {
     const handleMemoryStep = (step: MemoryStep) => {
       setExecutionHistory((prev) => [...prev, `Memoria: ${step.info}`]);
 
-      const updatedNodes = nodes.map((node) => {
-        if (node.id === "memory") {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              status: "active" as const,
-              statusText: step.info,
-            },
-          };
-        }
-        return node;
-      });
-
-      setNodes(updatedNodes);
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === "memory") {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: "active" as const,
+                statusText: step.info,
+              },
+            };
+          }
+          return node;
+        }),
+      );
     };
 
     const handleCacheStep = (
@@ -258,21 +262,21 @@ export default function App() {
           break;
       }
 
-      const updatedNodes = nodes.map((node) => {
-        if (node.id === "cache") {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              status,
-              statusText,
-            },
-          };
-        }
-        return node;
-      });
-
-      setNodes(updatedNodes);
+      setNodes((prevNodes) =>
+        prevNodes.map((node) => {
+          if (node.id === "cache") {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status,
+                statusText,
+              },
+            };
+          }
+          return node;
+        }),
+      );
     };
 
     // Event listeners
@@ -298,7 +302,7 @@ export default function App() {
       associativeCache.off("step", handleCacheStep);
       setAssociativeCache.off("step", handleCacheStep);
     };
-  }, [clearStatus, edges, nodes, updateStepState]);
+  }, [clearStatus, edges, updateStepState]);
 
   return (
     <div className="relative w-screen h-screen bg-gradient-to-br from-gray-900 to-gray-800">
@@ -324,7 +328,7 @@ export default function App() {
           </ReactFlow>
         </div>
 
-        {/* Control Panel - Solo UserActions ahora */}
+        {/* Control Panel */}
         <div className="w-80 bg-gray-800/50 backdrop-blur-sm border-l border-gray-700 flex flex-col">
           <div className="p-6">
             <UserActions
@@ -334,7 +338,7 @@ export default function App() {
             />
           </div>
 
-          {/* Execution History - Ocupa el espacio restante con scroll mejorado */}
+          {/* Execution History */}
           <div className="flex-1 flex flex-col min-h-0 p-6 pt-0">
             <div className="h-full bg-gray-900/50 rounded-lg border border-gray-700 flex flex-col">
               <div className="p-4 border-b border-gray-700 flex-shrink-0">
@@ -346,16 +350,15 @@ export default function App() {
                 </p>
               </div>
 
-              {/* Contenedor de scroll con altura fija y overflow controlado */}
               <div className="flex-1 min-h-0 overflow-hidden">
                 <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 hover:scrollbar-thumb-gray-500">
                   <div className="p-4 space-y-3">
                     <AnimatePresence initial={false}>
                       {executionHistory
-                        .slice(-50) // Mostrar más elementos
+                        .slice(-50)
                         .map((entry, index, array) => (
                           <motion.div
-                            key={`${index}-${entry}-${Date.now()}`} // Key más única
+                            key={`${index}-${entry}-${Date.now()}`}
                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                             animate={{ opacity: 1, y: 0, scale: 1 }}
                             exit={{ opacity: 0, x: -100 }}
@@ -396,7 +399,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Footer del historial */}
               {executionHistory.length > 0 && (
                 <div className="p-3 border-t border-gray-700 bg-gray-800/30 flex-shrink-0">
                   <div className="flex justify-between items-center text-xs text-gray-400">
@@ -420,15 +422,7 @@ export default function App() {
 
       {/* Bottom Control Panel */}
       <div className="absolute bottom-4 left-4">
-        <ControlPanel
-          onNext={handleNextStep}
-          onReset={handleReset}
-          onStop={handleStop}
-          isRunning={cpuManager.timerRunning}
-          hasNext={cpuManager.hasNext()}
-          totalSteps={totalSteps}
-          currentStep={currentStep}
-        />
+        <ControlPanel totalSteps={totalSteps} currentStep={currentStep} />
       </div>
     </div>
   );

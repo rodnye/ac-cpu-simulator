@@ -102,6 +102,14 @@ export class AssociativeCache extends Cache<AssociativeCacheStep> {
       info: `Bloque cargado desde memoria principal a línea ${freeLine} de la caché totalmente asociativa`,
     });
   }
+
+  // Al final de cada clase, agregar:
+  public resetVisualState() {
+    super.resetVisualState();
+    this.input = null;
+    this.output = null;
+    // Nota: no resetear this.tags, this.lines, this.sets porque contienen datos reales
+  }
 }
 
 // Tipado de pasos

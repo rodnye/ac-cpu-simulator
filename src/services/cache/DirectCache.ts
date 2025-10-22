@@ -101,6 +101,14 @@ export class DirectCache extends Cache<DirectCacheStep> {
       info: `Cargando bloque desde memoria principal a caché directa: Línea ${line}, Tag ${tag}, Bloque ${block}`,
     });
   }
+
+  // Al final de cada clase, agregar:
+  public resetVisualState() {
+    super.resetVisualState();
+    this.input = null;
+    this.output = null;
+    // Nota: no resetear this.tags, this.lines, this.sets porque contienen datos reales
+  }
 }
 
 // tipado de pasos

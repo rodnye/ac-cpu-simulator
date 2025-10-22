@@ -76,7 +76,7 @@ export function randomBinaryChar(cantidad: number) {
   const str = "01";
   let result = "";
   for (let i = 0; i < cantidad; i++) {
-    result += str.charAt(randomInt(0, 2));
+    result += str.charAt(randomInt(0, 1));
   }
 
   return result;

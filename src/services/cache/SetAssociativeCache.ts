@@ -23,15 +23,26 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       this.sets[setN] = {};
     }
 
-    // Inicializar exactamente 4 vías para el conjunto
     for (let i = 0; i < this.waysPerSet; i++) {
-      // Generar un tag único para cada vía
-      const wayTag = randomBinaryChar(8) + setN + randomBinaryChar(2);
+      const tag = randomBinaryChar(8);
+      const word = randomBinaryChar(2);
+      const wayTag = tag + setN + word;
+
       const wayAddress = binary4BitToHex(wayTag);
 
       this.sets[setN][wayTag] = this.memory.getBlock(wayAddress);
     }
   }
+
+  // Al final de cada clase, agregar:
+  public resetVisualState() {
+    super.resetVisualState();
+    this.input = null;
+    this.output = null;
+    // Nota: no resetear this.tags, this.lines, this.sets porque contienen datos reales
+  }
+
+  // En SetAssociativeCache.ts, corrige el método executeGetLine:
 
   public executeGetLine(hexAddress: string) {
     this.emit("execute", "get-line");
@@ -41,9 +52,10 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     const { tag, line, word } = parseHexAddress(hexAddress);
     const setNumber = line;
 
+    // CORRECCIÓN: Inicializar conjunto si no existe o está vacío
     if (
       !this.sets[setNumber] ||
-      Object.keys(this.sets[setNumber]).length != 4
+      Object.keys(this.sets[setNumber]).length === 0
     ) {
       this.initSet(setNumber);
     }
@@ -64,6 +76,17 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
     let wayIndex = 0;
 
     const ways = Object.keys(currentSet);
+
+    // CORRECCIÓN: Verificar que hay ways disponibles
+    if (ways.length === 0) {
+      this.addStep({
+        id: "cache-miss",
+        info: "FALLO - Conjunto vacío. Se requiere acceso a memoria principal",
+      });
+      this.output = null;
+      return null;
+    }
+
     for (let i = 0; i < ways.length; i++) {
       const currentTag = ways[i];
       wayIndex = i + 1;
@@ -79,7 +102,7 @@ export class SetAssociativeCache extends Cache<SetAssociativeCacheStep> {
       } else {
         this.addStep({
           id: "check-way",
-          info: `Vía ${wayIndex} en conjunto ${setNumber}: etiqueta diferente (${currentTag}) - continuando búsqueda`,
+          info: `Vía ${wayIndex} en conjunto ${setNumber}: etiqueta diferente (${currentTag.substring(0, 12)}...) - continuando búsqueda`,
         });
       }
     }

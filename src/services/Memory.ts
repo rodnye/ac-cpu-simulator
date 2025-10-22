@@ -27,4 +27,11 @@ export class Memory extends StepManager<MemoryStep> {
 
     return binary4BitToHex(binary);
   }
+
+  // Nuevo método para reset específico de memoria
+  public resetVisualState() {
+    super.resetVisualState();
+    this.input = null;
+    this.output = null;
+  }
 }

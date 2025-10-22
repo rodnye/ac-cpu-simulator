@@ -23,6 +23,7 @@ export abstract class StepManager<S extends Step = Step> extends EventEmitter<{
   "timer-stop": () => void;
   "timer-start": () => void;
   execute: (id: string) => void;
+  reset: () => void; // Nuevo evento
 }> {
   private timer: TimerId | undefined;
 
@@ -93,5 +94,13 @@ export abstract class StepManager<S extends Step = Step> extends EventEmitter<{
     clearInterval(this.timer);
     this.timer = undefined;
     this.emit("timer-stop");
+  }
+
+  // Nuevo método para resetear estado visual
+  public resetVisualState() {
+    this.steps = [];
+    this.input = null;
+    this.output = null;
+    this.emit("reset");
   }
 }

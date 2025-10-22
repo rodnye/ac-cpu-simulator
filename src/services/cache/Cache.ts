@@ -17,4 +17,12 @@ export abstract class Cache<S extends Step> extends StepManager<S> {
 
   public abstract executeGetLine(direccionHex: string): void;
   public abstract executeSetLine(direccionHex: string): void;
+
+  // Nuevo método para reset específico de cache
+  public resetVisualState() {
+    super.resetVisualState();
+    // Nota: no resetear this.lines porque contiene datos reales de cache
+    this.input = null;
+    this.output = null;
+  }
 }

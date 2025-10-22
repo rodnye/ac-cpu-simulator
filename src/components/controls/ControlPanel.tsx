@@ -1,23 +1,12 @@
-import Button from "../atoms/Button";
-import { NextIcon } from "../atoms/Icon";
-import { motion, AnimatePresence } from "framer-motion";
+// ControlPanel.tsx - Versión simplificada
+import { motion } from "framer-motion";
 
 interface ControlPanelProps {
-  onNext: () => void;
-  onStop: () => void;
-  onReset: () => void;
-  isRunning?: boolean;
-  hasNext?: boolean;
   currentStep?: number;
   totalSteps?: number;
 }
 
 export function ControlPanel({
-  onNext,
-  //onStop,
-  //onReset,
-  isRunning,
-  hasNext,
   currentStep = 0,
   totalSteps = 0,
 }: ControlPanelProps) {
@@ -28,39 +17,32 @@ export function ControlPanel({
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="bg-gray-900/90 backdrop-blur-xl border border-gray-700/60 rounded-2xl shadow-2xl p-6 hover:shadow-2xl transition-all duration-300 hover:border-cyan-400/30 hover:bg-gray-900/95 group"
     >
-      <div className="flex flex-row items-center justify-between gap-4">
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button
-            onClick={onNext}
-            disabled={!hasNext}
-            className="flex items-center gap-3 min-w-[140px] justify-center bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 shadow-lg hover:shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed group"
+      {/* Progress Indicator */}
+      <div className="flex flex-col items-center gap-3">
+        <div className="text-center">
+          <motion.div
+            key={`${currentStep}-${totalSteps}`}
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            className="text-2xl font-bold text-cyan-400"
           >
-            <motion.div
-              animate={{
-                x: hasNext ? [0, 4, 0] : 0,
-                scale: hasNext ? [1, 1.1, 1] : 1,
-              }}
-              transition={{
-                duration: 1.5,
-                repeat: hasNext ? Infinity : 0,
-                ease: "easeInOut",
-              }}
-            >
-              <NextIcon />
-            </motion.div>
-            <span>Siguiente</span>
-            <motion.span
-              animate={{ x: [0, 2, 0] }}
-              transition={{
-                duration: 1.2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            >
-              →
-            </motion.span>
-          </Button>
-        </motion.div>
+            {currentStep} / {totalSteps}
+          </motion.div>
+          <div className="text-sm text-gray-400 mt-1">Progreso de pasos</div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="w-full bg-gray-700 rounded-full h-2">
+          <motion.div
+            className="bg-gradient-to-r from-cyan-500 to-purple-500 h-2 rounded-full"
+            initial={{ width: 0 }}
+            animate={{
+              width:
+                totalSteps > 0 ? `${(currentStep / totalSteps) * 100}%` : "0%",
+            }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+          />
+        </div>
       </div>
 
       {/* Subtle background animation */}
