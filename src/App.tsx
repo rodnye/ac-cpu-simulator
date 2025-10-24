@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from "react";
 import { ReactFlow, Background, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { UserActions } from "./components/controls/UserActions.tsx";
-import { Cpu, type CpuStep } from "./services/Cpu.ts";
+import { CpuController } from "./engine/controllers/CpuController.ts";
 import {
   ComputerNode,
   type IComputerNodeData,
@@ -11,14 +11,23 @@ import {
 import cpuImg from "./assets/cpu_pc_components.png";
 import cacheImg from "./assets/cache_pc_components.png";
 import memoryImg from "./assets/ram_pc_components.png";
+import { CollapsibleTab } from "./components/atoms/CollapsiblePanel.tsx";
+import { RawTable } from "./components/atoms/RawTable.tsx";
 import { ControlPanel } from "./components/controls/ControlPanel.tsx";
-import { CacheTable } from "./components/tables/CacheTable.tsx";
+import {
+  type HistoryData,
+  HistoryTable,
+} from "./components/tables/HistoryTable.tsx";
 import { MemoryTable } from "./components/tables/MemoryTable.tsx";
-import type { MemoryStep } from "./services/Memory.ts";
-import type { SetAssociativeCacheStep } from "./services/cache/SetAssociativeCache.ts";
-import type { DirectCacheStep } from "./services/cache/DirectCache.ts";
-import type { CacheEntry, CacheType } from "./services/cache/Cache.ts";
-import type { AssociativeCacheStep } from "./services/cache/AssociativeCache.ts";
+import type { CacheType } from "./engine/controllers/CacheController.ts";
+import type { DirectCacheStep } from "./engine/controllers/DirectCacheController.ts";
+import type { MemoryStep } from "./engine/controllers/MemoryController.ts";
+import { getStepActions, type Step } from "./engine/controllers/StepController.ts";
+import { binToHex } from "./utils/convert.ts";
+
+const cpuImgReactNode = <img src={cpuImg} className="h-8" />;
+const memoryImgReactNode = <img src={memoryImg} className="h-8" />;
+const cacheImgReactNode = <img src={cacheImg} className="h-8" />;
 
 const initialNodes: IComputerNodeData[] = [
   {
@@ -35,6 +44,19 @@ const initialNodes: IComputerNodeData[] = [
     type: "component",
   },
   {
+    id: "memory",
+    position: { x: 500, y: 23 },
+    type: "component",
+    data: {
+      Component: () => (
+        <img src={memoryImg} className="h-16 filter brightness-110" />
+      ),
+      status: "idle",
+      statusText: "",
+      statusPosition: "bottom",
+    },
+  },
+  {
     id: "cache",
     position: { x: 260, y: -70 },
     data: {
@@ -46,19 +68,6 @@ const initialNodes: IComputerNodeData[] = [
       statusPosition: "right",
     },
     type: "component",
-  },
-  {
-    id: "memory",
-    position: { x: 500, y: 23 },
-    type: "component",
-    data: {
-      Component: () => (
-        <img src={memoryImg} className="w-24 h-16 filter brightness-110" />
-      ),
-      status: "idle",
-      statusText: "",
-      statusPosition: "bottom",
-    },
   },
 ] as const;
 
@@ -83,20 +92,105 @@ const initialEdges: Edge[] = [
     style: { stroke: "#4B5563", strokeWidth: "3px" },
   },
 ] as const;
-const cpuManager = new Cpu();
+
+const cpuManager = new CpuController();
 
 export default function App() {
   const [nodes, setNodes] = useState(initialNodes);
   const [edges, setEdges] = useState(initialEdges);
   const [totalSteps, setTotalSteps] = useState(0);
-  const [cacheType, setCacheType] = useState<
-    "direct" | "associative" | "set-associative"
-  >("direct");
+  const [cacheType, setCacheType] = useState<CacheType>("direct");
   const [{ cpu }, setCpuWrapper] = useState({ cpu: cpuManager });
+  const [stepHistory, setStepHistory] = useState<HistoryData[]>([]);
 
+  const updateNodeFromStep = (node: IComputerNodeData, step: Step) => {
+    const data = node.data;
+    data.status = "active";
+    data.statusText = "";
+    data.extraStatusText = "";
+
+    // sanitizar actions a un arreglo, ya que puede venir vacio o con un solo elemento
+    const actions = getStepActions(step);
+
+    // iterar y ejecutar acciones del paso
+    for (const action of actions) {
+      switch (action.type) {
+        case "text": {
+          if (action.target === "extra") {
+            data.extraStatusText = (
+              <>
+                {data.extraStatusText}
+                {action.text}
+              </>
+            );
+          } else {
+            data.statusText = (
+              <>
+                {data.statusText}
+                {action.text}
+              </>
+            );
+          }
+          break;
+        }
+        case "table": {
+          if (action.target === "extra") {
+            data.extraStatusText = (
+              <>
+                {data.extraStatusText}
+                <RawTable data={action.table} />
+              </>
+            );
+          } else {
+            data.statusText = (
+              <>
+                {data.statusText}
+                <RawTable data={action.table} />
+              </>
+            );
+          }
+          break;
+        }
+        case "status": {
+          data.status = action.status;
+          break;
+        }
+      }
+    }
+    addHistoryStep(
+      node.id === "cpu"
+        ? cpuImgReactNode
+        : node.id === "memory"
+          ? memoryImgReactNode
+          : cacheImgReactNode,
+      {
+        id: step.id,
+        info: data.statusText,
+        extraInfo: data.extraStatusText,
+      },
+    );
+
+    renderNodes();
+    renderCpu();
+  };
+  const addHistoryStep = (
+    responsible: ReactNode,
+    step: Omit<HistoryData, "component">,
+  ) => {
+    if (stepHistory.find((data) => data.id === step.id)) return;
+    setStepHistory([
+      ...stepHistory,
+      {
+        component: responsible,
+        id: step.id,
+        info: step.info,
+        extraInfo: step.extraInfo,
+      },
+    ]);
+  };
   const renderCpu = () => setCpuWrapper({ cpu });
   const renderNodes = () => setNodes([...nodes]);
-  const renderEdges = () =>
+  /*const renderEdges = () =>
     setEdges(
       edges.map((e) => {
         e.id = [
@@ -104,12 +198,9 @@ export default function App() {
           e.animated,
           e.style!.animationDirection,
         ].join(":");
-
-        // FIXME: esto oculta temporalmente los label, estan feos
-        e.label = "";
         return e;
       }),
-    );
+    );*/
   const clearStatus = () => {
     edges.forEach((e) => {
       e.animated = false;
@@ -120,194 +211,31 @@ export default function App() {
     });
   };
 
-  const getCacheLines = () => {
-    if (cacheType === "direct") {
-      return cpu.directCache.lines;
-    } else if (cacheType === "associative") {
-      return cpu.associativeCache.lines;
-    } else {
-      // For set-associative cache, flatten the sets
-      const setCache = cpu.setAssociativeCache;
-      const allLines: (CacheEntry | null)[] = [];
-      Object.values(setCache.sets || {}).forEach((set) => {
-        if (Array.isArray(set)) {
-          allLines.push(...set);
-        }
-      });
-      return allLines;
-    }
-  };
-
   useEffect(() => {
-    const { memory, directCache, associativeCache, setAssociativeCache } =
+    const { memory, directCache } =
       cpuManager;
-    const [cpuNode, cacheNode, memoryNode] = nodes;
-    const [cpuCacheEdge, cpuMemoryEdge] = edges;
+    const [cpuNode, cacheNode, memoryNode] = ["cpu", "cache", "memory"].map(
+      (targetId) => nodes.find(({ id }) => id === targetId)!,
+    );
+    //const [cpuCacheEdge, cpuMemoryEdge] = edges;
 
-    const handleCpuStep = (step: CpuStep) => {
-      clearStatus();
-      cpuNode.data.status = "active";
-      cpuNode.data.statusText = step.info;
-
-      if (step.id.startsWith("cache:") || step.id.startsWith("set-cache:")) {
-        cpuCacheEdge.animated = true;
-        cpuCacheEdge.style = {
-          ...cpuCacheEdge.style,
-          animationDirection:
-            step.value.length > 1 || step.id.includes("set-line")
-              ? "normal"
-              : "reverse",
-        };
-      }
-
-      renderEdges();
-      renderNodes();
-      renderCpu();
+    const handleCpuStep = (step: Step) => {
+      updateNodeFromStep(cpuNode, step);
     };
 
     const handleMemoryStep = (step: MemoryStep) => {
-      memoryNode.data.status = "active";
-      memoryNode.data.statusText = step.info;
-
-      if (step.id === "get-block") {
-        cpuMemoryEdge.label = step.value + "";
-        cpuMemoryEdge.animated = true;
-        cpuMemoryEdge.style = {
-          ...cpuMemoryEdge.style,
-          animationDirection: "reverse",
-        };
-        renderEdges();
-      }
-
-      renderNodes();
-      renderCpu();
+      updateNodeFromStep(memoryNode, step);
     };
 
     const handleDirectCacheStep = (step: DirectCacheStep) => {
-      let statusText: ReactNode = step.info;
-      let status: IComputerNodeData["data"]["status"] = "active";
-
-      switch (step.id) {
-        case "decode-address-bin": {
-          statusText = (
-            <div className="flex">
-              {step.value.map(([tag, word]) => (
-                <td key={tag} className="text-center border text-current p-2">
-                  {tag}
-                  <br />
-                  {word}
-                </td>
-              ))}
-            </div>
-          );
-          break;
-        }
-        case "decode-address": {
-          const { tag, bin, line, word } = step.value;
-          const binSplit = bin.split("");
-          const binTag = binSplit.slice(0, 8).join("");
-          const binLine = binSplit.slice(8, 22).join("");
-          const binWord = binSplit.slice(22).join("");
-          statusText = (
-            <table className="border-collapse">
-              <tbody className="[&>tr>*]:text-center [&>tr>*]:border text-current [&>tr>*]:p-2">
-                <tr>
-                  <th>Tag</th>
-                  <th>Line</th>
-                  <th>Word</th>
-                </tr>
-                <tr>
-                  <td>{parseInt(binTag, 2).toString(16)}</td>
-                  <td>{parseInt(binLine, 2).toString(16)}</td>
-                  <td>{parseInt(binWord, 2).toString(16)}</td>
-                </tr>
-                <tr>
-                  <td>{binTag}</td>
-                  <td>{binLine}</td>
-                  <td>{binWord}</td>
-                </tr>
-              </tbody>
-            </table>
-          );
-          break;
-        }
-        case "cache-hit":
-          status = "success";
-          break;
-        case "load-memory":
-          status = "success";
-          break;
-        case "cache-miss":
-          status = "error";
-          break;
-      }
-
-      cacheNode.data.statusText = statusText;
-      cacheNode.data.status = status;
-
-      renderNodes();
-      renderCpu();
-    };
-
-    const handleAssociativeCacheStep = (step: AssociativeCacheStep) => {
-      switch (step.id) {
-        case "cache-hit":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value;
-          renderEdges();
-          break;
-        case "load-memory":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value.line + ":" + step.value.entry.tag;
-          renderEdges();
-          break;
-        case "cache-miss":
-          cacheNode.data.status = "error";
-          break;
-        default:
-          cacheNode.data.status = "active";
-          break;
-      }
-      cacheNode.data.statusText = step.info;
-
-      renderNodes();
-      renderCpu();
-    };
-
-    const handleSetAssociativeCacheStep = (step: SetAssociativeCacheStep) => {
-      switch (step.id) {
-        case "cache-hit":
-          cacheNode.data.status = "success";
-          //cpuCacheEdge.label = step.value;
-          renderEdges();
-          break;
-        case "load-memory": {
-          cacheNode.data.status = "success";
-          const setInfo =
-            step.value.set !== undefined ? `Set ${step.value.set}, ` : "";
-          const wayInfo =
-            step.value.way !== undefined ? `Way ${step.value.way}` : "";
-          cpuCacheEdge.label = setInfo + wayInfo + ":" + step.value.entry.tag;
-          renderEdges();
-          break;
-        }
-        case "cache-miss":
-          cacheNode.data.status = "error";
-          break;
-        default:
-          cacheNode.data.status = "active";
-          break;
-      }
-      cacheNode.data.statusText = step.info;
-
-      renderNodes();
-      renderCpu();
+      updateNodeFromStep(cacheNode, step);
     };
 
     // for CPU
     cpuManager.on("step", handleCpuStep);
     cpuManager.on("execute", () => {
-      setTotalSteps(cpuManager.getSteps().length);
+      stepHistory.length = 0;
+      setTotalSteps(cpuManager.countAllSteps());
       renderCpu();
     });
     cpuManager.on("timer-start", renderCpu);
@@ -320,10 +248,6 @@ export default function App() {
     // cache
     directCache.on("step", handleDirectCacheStep);
     directCache.on("execute", renderCpu);
-    setAssociativeCache.on("step", handleSetAssociativeCacheStep);
-    setAssociativeCache.on("execute", renderCpu);
-    //associativeCache.on("step", handleAssociativeCacheStep);
-    associativeCache.on("execute", renderCpu);
 
     // Cleanup function
     return () => {
@@ -337,11 +261,6 @@ export default function App() {
 
       directCache.off("step", handleDirectCacheStep);
       directCache.off("execute");
-
-      associativeCache.off("step", handleAssociativeCacheStep);
-      associativeCache.off("execute");
-      setAssociativeCache.off("step", handleSetAssociativeCacheStep);
-      setAssociativeCache.off("execute");
     };
   });
 
@@ -368,14 +287,31 @@ export default function App() {
             onCacheTypeChange={setCacheType}
           />
           <div className="flex flex-row flex-grow-1 h-full">
-            <MemoryTable memoryData={cpu.memory.directCacheArray} />
-            <CacheTable lines={getCacheLines()} cacheType={cacheType} />
+            <MemoryTable
+              memoryData={Array.from(
+                cpu.memory.memory.createIterator(0, 200),
+              ).map(({ tag, blockHex }) => [
+                binToHex(tag),
+                blockHex,
+              ])}
+            />
           </div>
         </div>
+      </div>
+
+      <div className="absolute top-0 left-0">
+        <CollapsibleTab
+          contentClassName="w-full"
+          label="Historial de Operaciones"
+          position="bottom"
+        >
+          <HistoryTable data={stepHistory} />
+        </CollapsibleTab>
       </div>
       <div className="absolute bottom-0 left-0">
         <ControlPanel
           onNext={() => {
+            clearStatus();
             cpu.next();
           }}
           onReset={() => cpu.startTimer(1000)}
@@ -383,7 +319,7 @@ export default function App() {
           isRunning={cpu.timerRunning}
           hasNext={cpu.hasNext()}
           totalSteps={totalSteps}
-          currentStep={totalSteps - cpuManager.getSteps().length}
+          currentStep={totalSteps - cpuManager.countAllSteps()}
         />
       </div>
     </div>

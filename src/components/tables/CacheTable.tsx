@@ -1,9 +1,9 @@
 // CacheTable.tsx
-import type { CacheEntry, CacheType } from "../../services/cache/Cache";
-import type { DirectCache } from "../../services/cache/DirectCache";
+import type {  CacheType } from "../../utils/controllers/CacheControllerr
+import type { DirectCacheController } from "../../utils/controllers/DirectCacheControllerr
 
 interface CacheTableProps {
-  lines: DirectCache["lines"];
+  lines: DirectCacheController["lines"];
   cacheType?: CacheType;
 }
 
@@ -12,7 +12,7 @@ export const CacheTable = ({
   cacheType = "direct",
 }: CacheTableProps) => {
   const renderDirectCacheTable = () => {
-    const directLines = lines as DirectCache["lines"];
+    const directLines = lines as DirectCacheController["lines"];
 
     return (
       <table className="w-full">

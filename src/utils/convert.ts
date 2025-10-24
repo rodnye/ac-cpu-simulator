@@ -1,3 +1,6 @@
+export type Bin = string & { readonly _brand: unique symbol };
+export type Hex = string & { readonly _brand: unique symbol };
+
 const convertionHash: Record<string, string> = {
   "0": "0000",
   "1": "0001",
@@ -36,15 +39,15 @@ const reverseConvertionHash: Record<string, string> = {
   "1111": "F",
 };
 
-export function hexTo4BitBinary(string: string): string {
-  let ret: string = "";
-  for (const char of string) {
+export function hexTo4BitBinary(hex: Hex): Bin {
+  let ret = "";
+  for (const char of hex) {
     ret += convertionHash[char];
   }
-  return ret;
+  return ret as Bin;
 }
 
-export function binary4BitToHex(binaryString: string): string {
+export function binary4BitToHex(binaryString: Bin): Hex {
   // Verificar que la longitud sea múltiplo de 4
   if (binaryString.length % 4 !== 0) {
     throw new Error("La cadena binaria debe tener una longitud múltiplo de 4");
@@ -69,56 +72,52 @@ export function binary4BitToHex(binaryString: string): string {
     ret += reverseHash[chunk];
   }
 
-  return ret;
+  return ret as Hex;
 }
 
-export function randomBinaryChar(cantidad: number) {
+export function randomBinaryChar(len: number): Bin {
   const str = "01";
   let result = "";
-  for (let i = 0; i < cantidad; i++) {
+  for (let i = 0; i < len; i++) {
     result += str.charAt(randomInt(0, 2));
   }
 
-  return result;
+  return result as Bin;
 }
 
-export function randomHexChar(cantidad: number) {
+export function randomHexChar(len: number): Hex {
   const string: string = "ABCDEF0123456789";
   let resultado = "";
 
-  for (let i = 0; i < cantidad; i++) {
+  for (let i = 0; i < len; i++) {
     resultado += string[randomInt(0, 15)];
   }
 
-  return resultado;
+  return resultado as Hex;
 }
 
-export function parseHexAddress(direccionHex: string): {
-  bin: string;
-  tag: string;
-  line: string;
-  word: string;
-} {
-  const bin = hexTo4BitBinary(direccionHex);
+export function parseHexAddress(hexAddress: Hex) {
+  const bin = hexTo4BitBinary(hexAddress);
   return {
     bin,
-    tag: bin.substring(0, 8),
-    line: bin.substring(8, 22),
-    word: bin.substring(22, 24),
+    tag: bin.substring(0, 8) as Bin,
+    line: bin.substring(8, 22) as Bin,
+    word: bin.substring(22, 24) as Bin,
   };
 }
 
-export function parseHexAssociativeAddress(direccionHex: string): {
-  tag: string;
-  word: string;
-} {
-  const bin = hexTo4BitBinary(direccionHex);
+export function parseHexAssociativeAddress(hexAddress: Hex) {
+  const bin = hexTo4BitBinary(hexAddress);
   return {
-    tag: bin.substring(0, 22),
-    word: bin.substring(22, 24),
+    tag: bin.substring(0, 22) as Bin,
+    word: bin.substring(22, 24) as Bin,
   };
 }
 
 export function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
+export const hexToBin = (hex: Hex) =>
+  parseInt(hex.toLowerCase().padStart(1, "0"), 16).toString(2) as Bin;
+export const binToHex = (bin: Bin) =>
+  parseInt(bin.padStart(1, "0"), 2).toString(16).toUpperCase() as Hex;

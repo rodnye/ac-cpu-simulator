@@ -1,10 +1,13 @@
 import { Handle, Position, type HandleProps, type Node } from "@xyflow/react";
 import type { ReactNode } from "react";
+import { CollapsibleTab } from "../atoms/CollapsiblePanel";
+import type { ActionStatus } from "../../engine/controllers/StepController";
 
 export interface IComputerNodeData extends Node {
   data: {
-    status: "active" | "idle" | "error" | "success";
+    status: ActionStatus;
     statusText: ReactNode;
+    extraStatusText?: ReactNode;
     Component: () => ReactNode;
     statusPosition?: "top" | "right" | "bottom" | "left";
   };
@@ -19,6 +22,7 @@ export const ComputerNode = ({
     Component,
     status,
     statusText = "Default",
+    extraStatusText,
     statusPosition = "bottom",
   },
 }: {
@@ -65,7 +69,10 @@ export const ComputerNode = ({
       {/* Texto de estado flotante en la posición especificada */}
       {statusText && status !== "idle" && (
         <div className={`${getPositionClasses()} ${getStatusColor()}`}>
-          {statusText}
+          {extraStatusText ? <CollapsibleTab position="bottom" contentClassName={getStatusColor()} label={statusText}>
+            {extraStatusText}
+          </CollapsibleTab>: statusText }
+          
         </div>
       )}
 

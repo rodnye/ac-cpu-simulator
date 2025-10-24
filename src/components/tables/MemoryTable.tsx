@@ -1,7 +1,5 @@
-import type { Memory } from "../../services/Memory";
-
 interface MemoryTableProps {
-  memoryData: Memory['directCacheArray'];
+  memoryData: [string, string][];
 }
 
 export const MemoryTable = ({ memoryData }: MemoryTableProps) => {
@@ -26,7 +24,7 @@ export const MemoryTable = ({ memoryData }: MemoryTableProps) => {
             </tr>
           </thead>
           <tbody className="overflow-y-auto divide-y divide-gray-200">
-            {Object.entries(memoryData).map(([tag, block]) => (
+            {memoryData.map(([tag, block]) => (
               <tr
                 key={tag}
                 className="hover:bg-blue-50 transition-colors duration-150 ease-in-out"
