@@ -120,13 +120,15 @@ export const CacheTable = ({
   const hasData = lines.some((line) => line !== null);
 
   return (
-    <div className="h-1/2 flex flex-col select-none bg-white rounded-xl shadow-lg border border-gray-200">
+    <div className="h-full w-80 flex flex-col select-none bg-white rounded-xl shadow-lg border border-gray-200">
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-800">
-          Tabla de Caché{" "}
+          Caché
           {cacheType === "set-associative"
-            ? "- Asociativa por Conjuntos"
-            : "- Directa"}
+            ? " - Asociativa por Conjuntos"
+            : cacheType === "associative"
+              ? " - Asociativa"
+              : " - Directa"}
         </h2>
         <p className="text-sm text-gray-600 mt-1">
           {cacheType === "set-associative"
@@ -135,7 +137,7 @@ export const CacheTable = ({
         </p>
       </div>
 
-      <div className="overflow-x-auto flex-grow-1">
+      <div className="overflow-x-auto h-full flex-grow-1">
         {cacheType === "direct"
           ? renderDirectCacheTable()
           : renderSetAssociativeCacheTable()}

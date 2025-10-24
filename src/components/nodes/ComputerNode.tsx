@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 export interface IComputerNodeData extends Node {
   data: {
     status: "active" | "idle" | "error" | "success";
-    statusText: string;
+    statusText: ReactNode;
     Component: () => ReactNode;
     statusPosition?: "top" | "right" | "bottom" | "left";
   };

@@ -1,12 +1,12 @@
 import type { Memory } from "../../services/Memory";
 
 interface MemoryTableProps {
-  memoryData: typeof Memory.directCacheStrings;
+  memoryData: Memory['directCacheArray'];
 }
 
 export const MemoryTable = ({ memoryData }: MemoryTableProps) => {
   return (
-    <div className="h-1/2 flex flex-col select-none bg-white rounded-xl shadow-lg border border-gray-200">
+    <div className="h-full flex flex-col select-none bg-white rounded-xl shadow-lg border border-gray-200">
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
         <h2 className="text-xl font-semibold text-gray-800">
           Tabla de Memoria

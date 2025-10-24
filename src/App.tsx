@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { ReactFlow, Background, type Edge } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { UserActions } from "./components/controls/UserActions.tsx";
@@ -138,6 +138,7 @@ export default function App() {
     const [cpuCacheEdge, cpuMemoryEdge] = edges;
 
     const handleCpuStep = (step: CpuStep) => {
+      clearStatus();
       cpuNode.data.status = "active";
       cpuNode.data.statusText = step.info;
 
@@ -176,25 +177,66 @@ export default function App() {
     };
 
     const handleDirectCacheStep = (step: DirectCacheStep) => {
+      let statusText: ReactNode = step.info;
+      let status: IComputerNodeData["data"]["status"] = "active";
+
       switch (step.id) {
+        case "decode-address-bin": {
+          statusText = (
+            <div className="flex">
+              {step.value.map(([tag, word]) => (
+                <td key={tag} className="text-center border text-current p-2">
+                  {tag}
+                  <br />
+                  {word}
+                </td>
+              ))}
+            </div>
+          );
+          break;
+        }
+        case "decode-address": {
+          const { tag, bin, line, word } = step.value;
+          const binSplit = bin.split("");
+          const binTag = binSplit.slice(0, 8).join("");
+          const binLine = binSplit.slice(8, 22).join("");
+          const binWord = binSplit.slice(22).join("");
+          statusText = (
+            <table className="border-collapse">
+              <tbody className="[&>tr>*]:text-center [&>tr>*]:border text-current [&>tr>*]:p-2">
+                <tr>
+                  <th>Tag</th>
+                  <th>Line</th>
+                  <th>Word</th>
+                </tr>
+                <tr>
+                  <td>{parseInt(binTag, 2).toString(16)}</td>
+                  <td>{parseInt(binLine, 2).toString(16)}</td>
+                  <td>{parseInt(binWord, 2).toString(16)}</td>
+                </tr>
+                <tr>
+                  <td>{binTag}</td>
+                  <td>{binLine}</td>
+                  <td>{binWord}</td>
+                </tr>
+              </tbody>
+            </table>
+          );
+          break;
+        }
         case "cache-hit":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value;
-          renderEdges();
+          status = "success";
           break;
         case "load-memory":
-          cacheNode.data.status = "success";
-          cpuCacheEdge.label = step.value.line + ":" + step.value.entry.tag;
-          renderEdges();
+          status = "success";
           break;
         case "cache-miss":
-          cacheNode.data.status = "error";
-          break;
-        default:
-          cacheNode.data.status = "active";
+          status = "error";
           break;
       }
-      cacheNode.data.statusText = step.info;
+
+      cacheNode.data.statusText = statusText;
+      cacheNode.data.status = status;
 
       renderNodes();
       renderCpu();
@@ -297,64 +339,46 @@ export default function App() {
   });
 
   return (
-    <>
-      <div className="relative" style={{ width: "100vw", height: "100vh" }}>
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={{
-            component: ComputerNode,
-          }}
-          fitView
-        >
-          <Background />
-        </ReactFlow>
+    <div className="relative" style={{ width: "100vw", height: "100vh" }}>
+      <div className="flex w-full h-full flex-row items-stretch">
+        <div className="flex-grow">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={{
+              component: ComputerNode,
+            }}
+            fitView
+          >
+            <Background />
+          </ReactFlow>
+        </div>
 
-        <div className="absolute top-0 right-0 h-full flex flex-col">
-          <div className="bg-white p-4 rounded-lg shadow-lg mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Caché:
-            </label>
-            <select
-              value={cacheType}
-              onChange={(e) =>
-                setCacheType(e.target.value as CacheType)
-              }
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="direct">Caché Directa</option>
-              <option value="associative">Caché Asociativa</option>
-              <option value="set-associative">
-                Caché Asociativa por Conjuntos
-              </option>
-            </select>
-          </div>
-
+        <div className="h-full flex flex-col overflow-y-auto">
           <UserActions
             cpu={cpu}
             cacheType={cacheType}
             onCacheTypeChange={setCacheType}
           />
-          <div className="flex flex-row">
+          <div className="flex flex-row flex-grow-1 h-full">
             <MemoryTable memoryData={cpu.memory.directCacheArray} />
             <CacheTable lines={getCacheLines()} cacheType={cacheType} />
           </div>
         </div>
-        <div className="absolute bottom-0 left-0">
-          <ControlPanel
-            onNext={() => {
-              clearStatus();
-              cpu.next();
-            }}
-            onReset={() => cpu.startTimer(3000)}
-            onStop={() => cpu.stopTimer()}
-            isRunning={cpu.timerRunning}
-            hasNext={cpu.hasNext()}
-            totalSteps={totalSteps}
-            currentStep={totalSteps - cpuManager.getSteps().length}
-          />
-        </div>
       </div>
-    </>
+      <div className="absolute bottom-0 left-0">
+        <ControlPanel
+          onNext={() => {
+            cpu.next();
+          }}
+          onReset={() => cpu.startTimer(1000)}
+          onStop={() => cpu.stopTimer()}
+          isRunning={cpu.timerRunning}
+          hasNext={cpu.hasNext()}
+          totalSteps={totalSteps}
+          currentStep={totalSteps - cpuManager.getSteps().length}
+        />
+      </div>
+    </div>
   );
 }
