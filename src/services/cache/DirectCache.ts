@@ -8,12 +8,27 @@ export class DirectCache extends Cache<DirectCacheStep> {
     this.setSteps([]);
     this.input = hexAddress;
 
-    const { tag, line, word } = Cpu.parseHexAddress(hexAddress);
+    const { tag, line, word, bin } = Cpu.parseHexAddress(hexAddress);
+    
+    {
+      const binTable: [string, string][] = [];
+      const iterator = bin.matchAll(/\d{4}/g);
+      
+      let value;
+      while ((value = iterator.next()?.value?.[0]) !== undefined) {
+        binTable.push([hexAddress.charAt(binTable.length), value]);
+      }
+      this.addStep({
+        id: "decode-address-bin",
+        info: `Convertir a binario de 4 posiciones`,
+        value: binTable,
+      });
+    }
 
     this.addStep({
       id: "decode-address",
-      info: `Dirección decodificada: tag=${tag}, línea=${line}, palabra=${word}`,
-      value: { tag, line, word },
+      info: `Dirección decodificada`,
+      value: { tag, line, word, bin },
     });
 
     const entry = this.lines[line];
@@ -72,11 +87,16 @@ export class DirectCache extends Cache<DirectCacheStep> {
 export type DirectCacheStep = Omit<Step, "value"> &
   (
     | {
+        id: "decode-address-bin";
+        value: [string, string][];
+      }
+    | {
         id: "decode-address";
         value: {
           tag: string;
           line: number;
           word: string;
+          bin: string;
         };
       }
     | {
